@@ -12,7 +12,7 @@ The source is `site/` inside this working repository. Only that subtree is publi
 python3 -m http.server 8765 --bind 127.0.0.1 --directory site
 ```
 
-Open the printed local URL. Check desktop and narrow layouts, the contents links and the optional sound button. The sound is an original browser-synthesized conceptual motif, not a model-generated music result. There is no autoplay, analytics, font CDN or backend.
+Open the printed local URL. Check desktop and narrow layouts, contents links, the DeepChord repository/documentation links, command-copy buttons and the optional sound button. The installation guide uses the public DeepChord CLI; keep its commands aligned with README.md and distinguish the deterministic demo from local-model composition. The sound is an original browser-synthesized conceptual motif, not a model-generated music result. There is no autoplay, analytics, font CDN or backend.
 
 ## Publish changes
 

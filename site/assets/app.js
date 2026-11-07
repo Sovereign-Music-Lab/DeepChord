@@ -42,3 +42,23 @@ button.addEventListener('click', async () => {
   } catch (_) { stop(); status.textContent = '사운드를 시작하지 못했습니다. 다시 시도해 주세요.'; }
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing) stop(); });
+
+// Progressive enhancement: commands remain selectable without clipboard support.
+if (navigator.clipboard && window.isSecureContext) {
+  document.querySelectorAll('.copy-code').forEach(copyButton => {
+    copyButton.hidden = false;
+    copyButton.addEventListener('click', async () => {
+      const code = document.getElementById(copyButton.dataset.copy);
+      const feedback = document.getElementById('copy-status');
+      try {
+        await navigator.clipboard.writeText(code.textContent);
+        copyButton.textContent = '복사됨 ✓';
+        feedback.textContent = copyButton.getAttribute('aria-label') + ' 완료';
+      } catch (_) {
+        feedback.textContent = '복사하지 못했습니다. 코드 영역의 명령을 직접 선택해 복사해 주세요.';
+        copyButton.textContent = '직접 선택해 주세요';
+      }
+      setTimeout(() => { copyButton.textContent = '복사'; }, 2500);
+    });
+  });
+}
