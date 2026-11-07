@@ -1,5 +1,7 @@
 # DeepChord
 
+**English** · [한국어](README.ko.md)
+
 **A Sovereign Music Lab project.**
 
 **Local knowledge → editable music → human performance.**
@@ -8,7 +10,7 @@ DeepChord is a local-first piano composition toolkit: generate symbolic music wi
 
 ## RAG · LoRA → Local LLM → Logic Pro MCP → Composition
 
-DeepChord는 개인의 음악 지식과 로컬 모델을 연결하고, Logic Pro에서 수정하고 연주할 수 있는 음악을 만드는 프로젝트입니다.
+DeepChord connects your private musical knowledge with local models to create music you can revise and perform in Logic Pro.
 
 ```mermaid
 flowchart LR
@@ -43,7 +45,7 @@ For AI composition, install [Ollama](https://ollama.com/) separately and obtain 
 
 ```sh
 ollama list
-deepchord compose '따뜻한 C장조 재즈 피아노곡, 마지막은 Cmaj7' --bars 4 --model YOUR_INSTALLED_LOCAL_MODEL
+deepchord compose 'A warm jazz piano sketch in C major, ending on Cmaj7' --bars 4 --model YOUR_INSTALLED_LOCAL_MODEL
 ```
 
 Replace `YOUR_INSTALLED_LOCAL_MODEL` with an installed tag. The local author's tested tag is `gemma4:12b-mlx`; it is not downloaded or included by this package. Cloud tags are rejected. Ollama requests go only to localhost, bypassing environment proxies. Generation is bounded to 1–16 bars and one repair attempt. Validation may reject the model output; failed attempts remain available privately for inspection.
@@ -79,7 +81,7 @@ No book, PDF, OCR, RAG card, excerpt or index is bundled. Without a private RAG 
 
 ```sh
 export MUSIC_RAG_ROOT=/path/to/your/private/musicRAG
-deepchord rag '투파이브 루트리스 보이싱'
+deepchord rag 'rootless ii–V voicings'
 ```
 
 The adapter invokes `scripts/rag.py query TEXT --top 3 --kind concept --context` with the current Python interpreter. Other libraries can implement this local interface. Retrieved evidence is sent only to the local model and stored in the private run directory. RAG is retrieval, not weight training.
@@ -109,16 +111,17 @@ Feedback is stored with the composition hash. It does not silently retrain the m
 
 ## Privacy and distribution
 
-This repository contains **code, tests and documentation only**. Original PDFs, RAG data, datasets, model weights, LoRA adapters, generated MIDI/audio, Logic projects, personal configuration and runtime logs are excluded. The root ignore policy denies new top-level paths by default; the tracked-file scanner and CI provide an additional check. Keep runtime data in the external default directory or an ignored `.private/` folder.
+This repository contains **code, tests, documentation and reviewed website brand images**. Original PDFs, RAG data, datasets, model weights, LoRA adapters, generated MIDI/audio, Logic projects, personal configuration and runtime logs are excluded. The root ignore policy denies new top-level paths by default; the tracked-file scanner and CI provide an additional check. Keep runtime data in the external default directory or an ignored `.private/` folder.
 
 ```sh
 python -m unittest discover -s tests -v
 python scripts/check_public.py
+python scripts/check_site.py
 python -m pip install build
 python -m build
 ```
 
-The source code is MIT licensed; this does not grant rights to any separate book, model, sample library or dataset. No remote repository or release is created by the package.
+The source code is licensed under [Apache License 2.0](LICENSE); this does not grant rights to any separate book, model, sample library or dataset. No remote repository or release is created by the package.
 
 ## Current verification scope
 
@@ -130,4 +133,10 @@ The source code is MIT licensed; this does not grant rights to any separate book
 
 ## Project introduction
 
-Visit [Sovereign Music Lab](https://sovereign-music-lab.github.io/) for the project philosophy, credits and creative workflow. The static introduction lives in `site/`; [publishing notes](docs/landing-page.md) explain how only that subtree reaches GitHub Pages.
+Visit [Sovereign Music Lab](https://sovereign-music-lab.github.io/en/) for the project philosophy, credits and creative workflow. The static introduction lives in `site/`; [publishing notes](docs/landing-page.md) explain how only that subtree reaches GitHub Pages.
+
+## Credits
+
+- [Hee-sung Kang](https://ikoffices.com/)
+- [Do-won Lee](https://music.bugs.co.kr/artist/80353758?wl_ref=list_ar_02_search)
+- [Sungmo Park](mailto:vividsaebom@gmail.com)

@@ -3,7 +3,9 @@
 !/.gitignore
 !/.gitattributes
 !/README.md
+!/README.ko.md
 !/LICENSE
+!/NOTICE
 !/pyproject.toml
 !/Start.command
 !/AGENTS.md

@@ -1,3 +1,5 @@
+# Copyright 2026 Sovereign Music Lab contributors
+# SPDX-License-Identifier: Apache-2.0
 """Full-MIDI Logic handoff with separate launch and observation results."""
 import hashlib
 import json

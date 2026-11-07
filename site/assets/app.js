@@ -1,4 +1,26 @@
+/* Copyright 2026 Sovereign Music Lab contributors. SPDX-License-Identifier: Apache-2.0 */
 'use strict';
+const english = document.documentElement.lang === 'en';
+const copy = english ? {
+  play: 'Play a small motif', stop: 'Stop playback',
+  idle: 'An illustrative synthesized motif · not an AI composition',
+  playing: 'Playing · an 8-second motif synthesized in your browser',
+  unsupported: 'Sound playback is not supported in this browser.',
+  failed: 'Could not start the sound. Please try again.',
+  copy: 'Copy', copied: 'Copied ✓', complete: ' complete',
+  copyFailed: 'Could not copy. Select the commands in the code block and copy them manually.',
+  select: 'Select manually'
+} : {
+  play: '작은 모티프 들어보기', stop: '재생 멈추기',
+  idle: '개념을 위한 합성 사운드 · AI 작곡 결과가 아닙니다',
+  playing: '재생 중 · 브라우저에서 합성한 8초 모티프',
+  unsupported: '이 브라우저에서는 사운드 재생을 지원하지 않습니다.',
+  failed: '사운드를 시작하지 못했습니다. 다시 시도해 주세요.',
+  copy: '복사', copied: '복사됨 ✓', complete: ' 완료',
+  copyFailed: '복사하지 못했습니다. 코드 영역의 명령을 직접 선택해 복사해 주세요.',
+  select: '직접 선택해 주세요'
+};
+
 const button = document.querySelector('#sound-toggle');
 const label = button.querySelector('.sound-label');
 const status = document.querySelector('#sound-status');
@@ -10,14 +32,14 @@ function stop() {
   playing = false;
   button.setAttribute('aria-pressed', 'false');
   button.querySelector('.play-icon').textContent = '▶';
-  label.textContent = '작은 모티프 들어보기';
+  label.textContent = copy.play;
   art.classList.remove('playing');
-  status.textContent = '개념을 위한 합성 사운드 · AI 작곡 결과가 아닙니다';
+  status.textContent = copy.idle;
 }
 button.addEventListener('click', async () => {
   if (playing) { stop(); return; }
   const AudioEngine = window.AudioContext || window.webkitAudioContext;
-  if (!AudioEngine) { status.textContent = '이 브라우저에서는 사운드 재생을 지원하지 않습니다.'; return; }
+  if (!AudioEngine) { status.textContent = copy.unsupported; return; }
   try {
     const engine = new AudioEngine(); context = engine;
     playing = true; button.setAttribute('aria-pressed', 'true');
@@ -36,10 +58,10 @@ button.addEventListener('click', async () => {
     [[64,0,1.8],[67,2,0.9],[71,3,1.8],[69,5,0.9],[72,6,1.85]].forEach(n => note(...n,0.5));
     [48,55,59].forEach(n => note(n,0,3.7,0.18));
     [53,57,60].forEach(n => note(n,4,3.8,0.16));
-    button.querySelector('.play-icon').textContent = '■'; label.textContent = '재생 멈추기';
-    status.textContent = '재생 중 · 브라우저에서 합성한 8초 모티프'; art.classList.add('playing');
+    button.querySelector('.play-icon').textContent = '■'; label.textContent = copy.stop;
+    status.textContent = copy.playing; art.classList.add('playing');
     timer = setTimeout(stop, 8050);
-  } catch (_) { stop(); status.textContent = '사운드를 시작하지 못했습니다. 다시 시도해 주세요.'; }
+  } catch (_) { stop(); status.textContent = copy.failed; }
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing) stop(); });
 
@@ -52,13 +74,23 @@ if (navigator.clipboard && window.isSecureContext) {
       const feedback = document.getElementById('copy-status');
       try {
         await navigator.clipboard.writeText(code.textContent);
-        copyButton.textContent = '복사됨 ✓';
-        feedback.textContent = copyButton.getAttribute('aria-label') + ' 완료';
+        copyButton.textContent = copy.copied;
+        feedback.textContent = copyButton.getAttribute('aria-label') + copy.complete;
       } catch (_) {
-        feedback.textContent = '복사하지 못했습니다. 코드 영역의 명령을 직접 선택해 복사해 주세요.';
-        copyButton.textContent = '직접 선택해 주세요';
+        feedback.textContent = copy.copyFailed;
+        copyButton.textContent = copy.select;
       }
-      setTimeout(() => { copyButton.textContent = '복사'; }, 2500);
+      setTimeout(() => { copyButton.textContent = copy.copy; }, 2500);
     });
   });
 }
+
+// Preserve the current section when switching between the static language pages.
+function updateLanguageLinks() {
+  document.querySelectorAll('[data-language-link]').forEach(link => {
+    const destination = new URL(link.getAttribute('href'), window.location.origin);
+    link.setAttribute('href', destination.pathname + window.location.hash);
+  });
+}
+updateLanguageLinks();
+window.addEventListener('hashchange', updateLanguageLinks);

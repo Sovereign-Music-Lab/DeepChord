@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 Sovereign Music Lab contributors
+# SPDX-License-Identifier: Apache-2.0
 """Local-first composition workbench. Python 3.11+, standard library only."""
 import argparse
 import datetime as dt

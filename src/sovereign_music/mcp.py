@@ -1,3 +1,5 @@
+# Copyright 2026 Sovereign Music Lab contributors
+# SPDX-License-Identifier: Apache-2.0
 """Bounded stdio MCP client; no arbitrary model-selected tool execution."""
 import json
 import os

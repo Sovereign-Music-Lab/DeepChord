@@ -1,6 +1,19 @@
 # Private MLX LoRA workflow
 
+**English** · [한국어](training.ko.md)
+
 Use a local MLX-compatible model with `config.json`, tokenizer files and `.safetensors` weights. Ollama's storage layout and model tags are not training inputs. Obtain the model separately under its terms; no model download is triggered by the training command. The tested backend is `mlx-lm[train]==0.32.2` on Apple Silicon.
+
+## Install extras and run
+
+Run in the virtual environment where DeepChord is installed. Replace `/path/to/...` with your own local paths.
+
+```sh
+python -m pip install '.[train]'
+deepchord train prepare /path/to/reviewed.jsonl --out /path/to/private/dataset
+deepchord train run --model /path/to/local-mlx-model --data /path/to/private/dataset --out /path/to/private/adapter --iters 100
+deepchord compose 'A four-bar piano sketch' --bars 4 --model /path/to/local-mlx-model --adapter /path/to/private/adapter
+```
 
 ## Review and group your examples
 

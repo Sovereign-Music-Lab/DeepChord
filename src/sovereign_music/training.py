@@ -1,3 +1,5 @@
+# Copyright 2026 Sovereign Music Lab contributors
+# SPDX-License-Identifier: Apache-2.0
 """Offline MLX LoRA workflow. Private data and weights are never distributed."""
 import hashlib
 import json
