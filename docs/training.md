@@ -23,9 +23,9 @@ Do not copy book passages or unreviewed model replies into this dataset. A posit
 ## Pipeline smoke test
 
 ```sh
-sovereign-music train smoke-data --out /path/to/private/smoke/reviewed.jsonl
-sovereign-music train prepare /path/to/private/smoke/reviewed.jsonl --out /path/to/private/smoke/data
-sovereign-music train run --model /path/to/small/local-mlx-model --data /path/to/private/smoke/data --out /path/to/private/smoke/adapter --iters 3
+deepchord train smoke-data --out /path/to/private/smoke/reviewed.jsonl
+deepchord train prepare /path/to/private/smoke/reviewed.jsonl --out /path/to/private/smoke/data
+deepchord train run --model /path/to/small/local-mlx-model --data /path/to/private/smoke/data --out /path/to/private/smoke/adapter --iters 3
 ```
 
 The smoke generator creates synthetic chord exercises from code. The examples are closely related and are **only an infrastructure test**, not a legitimate benchmark of generalization or musical improvement. Never mix them into a production evaluation set. Three iterations are not a useful completed musical training program.

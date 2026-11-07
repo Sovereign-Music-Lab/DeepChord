@@ -9,7 +9,7 @@ from . import core
 
 
 def parser():
-    p=argparse.ArgumentParser(prog='sovereign-music',description='Sovereign Music Lab — local composition, Logic, and private LoRA')
+    p=argparse.ArgumentParser(prog='deepchord',description='DeepChord by Sovereign Music Lab — local composition, Logic, and private LoRA')
     sub=p.add_subparsers(dest='cmd',required=True)
     sub.add_parser('doctor')
     q=sub.add_parser('rag');q.add_argument('query')

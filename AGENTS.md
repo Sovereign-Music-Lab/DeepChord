@@ -1,4 +1,4 @@
-# Sovereign Music
+# DeepChord — Sovereign Music Lab
 
 Keep original PDFs, RAG indexes/excerpts, model weights, adapters, datasets, generated music, machine configuration and runtime logs private. Do not stage or publish them. Runtime defaults to an external user data directory; local experiments belong in .private/ (ignored). No remote publication without the user's request.
 
