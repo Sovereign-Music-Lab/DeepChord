@@ -1,0 +1,6 @@
+include LICENSE README.md pyproject.toml Start.command
+recursive-include docs *.md
+recursive-include scripts *.py
+recursive-include tests *.py
+recursive-include src/sovereign_music *.py
+exclude src/sovereign_music/*.jsonl
