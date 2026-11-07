@@ -7,14 +7,14 @@ import sys
 
 ROOT=Path(__file__).resolve().parents[1]
 TOP={'.gitignore','.gitattributes','README.md','LICENSE','pyproject.toml','Start.command','AGENTS.md','MANIFEST.in'}
-DIRS={'src','tests','scripts','docs','.github'}
-EXT={'.py','.md','.toml','.txt','.yml','.yaml','.command'}
+DIRS={'src','tests','scripts','docs','.github','site'}
+EXT={'.py','.md','.toml','.txt','.yml','.yaml','.command','.html','.css','.js','.svg','.xml'}
 
 def issue(name,data,mode='100644'):
     p=Path(name)
     if mode=='120000':return 'symlink is not distributable'
     if p.parts[0] not in DIRS and name not in TOP:return 'unapproved path'
-    if name not in TOP and p.suffix.lower() not in EXT:return 'unapproved file type'
+    if name not in TOP and name!='site/.nojekyll' and p.suffix.lower() not in EXT:return 'unapproved file type'
     if any(x in name.lower() for x in ['.egg-info','__pycache__','rag-evidence','adapter_config']):return 'runtime/generated file'
     if len(data)>250000:return 'oversized source file'
     try:text=data.decode('utf-8')
