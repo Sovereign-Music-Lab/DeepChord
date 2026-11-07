@@ -104,3 +104,7 @@ The source code is MIT licensed; this does not grant rights to any separate book
 - Real MLX QLoRA smoke training, held-out loss evaluation and adapter reload exercised on a small model.
 - A two-track MIDI fixture opened in Logic Pro 13.0 with 76 BPM and two Studio Grand tracks, then saved locally via GUI. This GUI test is distinct from the Launch Services command's mocked unit test.
 - General musical quality, automatic instrument assignment, fully unattended dialogs and professional listening evaluation are **not** validated. No “GPT-level composition” claim is made.
+
+## Project introduction
+
+Visit [Sovereign Music Lab](https://sovereign-music-lab.github.io/) for the project philosophy, credits and creative workflow. The static introduction lives in `site/`; [publishing notes](docs/landing-page.md) explain how only that subtree reaches GitHub Pages.
