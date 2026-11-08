@@ -54,7 +54,7 @@ deepchord session --name my-song --model gemma4:12b-mlx --bars 4 \
 
 ## 매번 설명하는 것
 
-`EXPLANATION.md`와 `explanation.json`에는 마디별 코드·도수·구성음·실음 음급, 코드명에서 검출한 장·단조 ii–V–I, 검색한 이론 후보와 화성 검사 경고를 기록합니다. 검색 후보는 실제 적용의 증명이 아닙니다. 검출 패턴은 코드명 관계에 대한 설명이며 청취 평가나 완전한 기능 분석이 아닙니다. JSON에서 수정한 뒤에는 `deepchord explain RUN`으로 다시 계산할 수 있습니다.
+`EXPLANATION.md`와 `explanation.json`에는 마디별 코드·도수·구성음·실음 음급, 코드명에서 검출한 장·단조 ii–V–I와 도미넌트 근음 진행, 검색한 이론 후보와 화성 검사 경고를 기록합니다. 검색 후보는 실제 적용의 증명이 아닙니다. 검출 패턴은 코드명 관계에 대한 설명이며 청취 평가나 완전한 기능 분석이 아닙니다. JSON에서 수정한 뒤에는 `deepchord explain RUN`으로 다시 계산할 수 있습니다.
 
 ## RAG와 LoRA를 함께 사용
 

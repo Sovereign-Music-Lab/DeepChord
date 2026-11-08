@@ -50,6 +50,6 @@ def main():
         if problem:errors.append(f'{name}: {problem}')
     if not count:errors.append('No staged/tracked files to audit')
     if errors:print('\n'.join(errors),file=sys.stderr);return 1
-    print(f'Public index audit passed: {count} reviewed source/documentation/brand files; no datasets or weights.');return 0
+    print(f'Public index audit passed: {count} reviewed source/documentation/foundation/brand files; no private datasets or weights.');return 0
 
 if __name__=='__main__':raise SystemExit(main())

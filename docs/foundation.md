@@ -54,7 +54,7 @@ Use repeated `--request 'first request' --request 'revision'` arguments for a no
 
 ## What every result explains
 
-`EXPLANATION.md` and `explanation.json` record each bar's chord, degrees, spelled tones, pitch classes, major/minor ii–V–I patterns detected in chord labels, retrieved theory candidates, and harmony-check warnings. A retrieved candidate is not proof of application. Pattern detection is not listening or complete functional analysis. Run `deepchord explain RUN` after editing JSON to recalculate the report.
+`EXPLANATION.md` and `explanation.json` record each bar's chord, degrees, spelled tones, pitch classes, major/minor ii–V–I and dominant root-motion patterns detected in chord labels, retrieved theory candidates, and harmony-check warnings. A retrieved candidate is not proof of application. Pattern detection is not listening or complete functional analysis. Run `deepchord explain RUN` after editing JSON to recalculate the report.
 
 ## Use RAG and LoRA together
 

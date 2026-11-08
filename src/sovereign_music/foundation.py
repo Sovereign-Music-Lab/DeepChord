@@ -104,8 +104,13 @@ def write_explanation(song,run,evidence_ids=()):
     report=explain(song,evidence_ids);dump(Path(run)/'explanation.json',report)
     lines=['# 사용 코드와 이론 / Chords and theory','', '코드 구성음은 수식 계산, 패턴은 코드명 대조 결과입니다. 검색한 이론과 실제 검출을 구분합니다.','', '| 마디 / Bar | 코드 / Chord | 구성음 / Tones |','|---|---|---|']
     for c in report['chords']:lines.append(f"| {c['bar']} | {c['symbol']} | {' '.join(c.get('notes',[]))} |")
-    lines+=['','검출한 패턴 / Detected patterns: '+json.dumps(report['detected_theory_patterns'],ensure_ascii=False),
-            '검색한 후보 / Retrieved candidates: '+', '.join(evidence_ids), '',report['distinction']]
+    names={'theory:'+c['id']:c['aliases'][0] for c in DATA['theory']}
+    lines+=['','코드명에서 확인한 관계 / Relationships detected in chord labels:']
+    for pattern in report['detected_theory_patterns']:
+        lines.append('- '+','.join(map(str,pattern['bars']))+'마디 / bars: '+names.get(pattern['theory_id'],pattern['theory_id'])+' ('+pattern['theory_id']+')')
+    if not report['detected_theory_patterns']:lines.append('- 지원하는 종지 패턴이 검출되지 않았습니다. / No supported cadence pattern detected.')
+    lines+=['','검색한 이론 후보 / Retrieved theory candidates: '+', '.join(names.get(i,i) for i in evidence_ids),
+            '실제 개별 성부의 해결·기능과 청취 품질은 별도로 확인합니다. / Individual voice resolution, function and listening quality require separate checks.', '',report['distinction']]
     (Path(run)/'EXPLANATION.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
     return report
 
