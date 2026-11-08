@@ -1,5 +1,10 @@
 # Sovereign Music Lab
 
+**Authors / Project credits:** [Hee-sung Kang · 강희성](https://ikoffices.com/) · [Do-won Lee · 이도원](https://music.bugs.co.kr/artist/80353758?wl_ref=list_ar_02_search) · [Sungmo Park · 박성모](mailto:vividsaebom@gmail.com)
+
+[Organization](https://github.com/Sovereign-Music-Lab) · [Website](https://sovereign-music-lab.github.io/) · [DeepChord](https://github.com/Sovereign-Music-Lab/DeepChord) · [Sovereign DAW](https://github.com/Sovereign-Music-Lab/sovaroll-DAW) · [Sovereign Flow](https://github.com/Sovereign-Music-Lab/SovaFlow)
+
+## 초록
 [English](README.md) · **한국어**
 
 인간의 지식에서, 로컬 AI를 거쳐, 다시 인간의 연주로.
@@ -10,6 +15,13 @@ Sovereign Music Lab과 로컬 피아노 작곡 도구 **DeepChord**를 소개하
 - [English website](https://sovereign-music-lab.github.io/en/)
 - [DeepChord 저장소와 설치 안내](https://github.com/Sovereign-Music-Lab/DeepChord/blob/main/README.ko.md)
 - [DeepChord 설치하고 사용하기](https://sovereign-music-lab.github.io/#getting-started)
+
+## 목차
+
+- [개발](#개발)
+- [크레딧](#크레딧)
+- [라이선스와 비공개 자료](#라이선스와-비공개-자료)
+- [개발 인계](#개발-인계)
 
 ## 개발
 
@@ -36,3 +48,7 @@ python3 -m http.server 8765 --bind 127.0.0.1 --directory site
 ## 라이선스와 비공개 자료
 
 코드는 [Apache License 2.0](LICENSE)을 따릅니다. 저작권 표기는 [NOTICE](NOTICE)를 확인하세요. 원본 PDF, 교재 기반 RAG 기록, 모델 가중치, 어댑터, 학습 자료, 개인 설정과 개인 음악은 포함하지 않습니다.
+
+## 개발 인계
+
+[CONTEXT.md](CONTEXT.md) · [Model operations / 모델 운영](docs/MODEL_OPERATIONS.ko.md) · [Reusable skill / 재사용 스킬](skills/model-tier-handoff/SKILL.md)

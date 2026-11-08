@@ -1,10 +1,28 @@
 # DeepChord
 
+**Authors / Project credits:** [Hee-sung Kang · 강희성](https://ikoffices.com/) · [Do-won Lee · 이도원](https://music.bugs.co.kr/artist/80353758?wl_ref=list_ar_02_search) · [Sungmo Park · 박성모](mailto:vividsaebom@gmail.com)
+
+[Organization](https://github.com/Sovereign-Music-Lab) · [Website](https://sovereign-music-lab.github.io/) · [DeepChord](https://github.com/Sovereign-Music-Lab/DeepChord) · [Sovereign DAW](https://github.com/Sovereign-Music-Lab/sovaroll-DAW) · [Sovereign Flow](https://github.com/Sovereign-Music-Lab/SovaFlow)
+
+## Abstract
 **English** · [한국어](README.ko.md)
 
 **Sovereign Music Lab · Local knowledge → editable music → the human's next request.**
 
 A local piano composition toolkit for Linux, Windows, and macOS. It connects public theory RAG and a chord dictionary, an Ollama local LLM, optional LoRA, MIDI explanations, and persistent revision sessions. On a Mac, add Logic Pro handoff and MCP observation.
+
+## Contents
+
+- [A continuing human composition loop](#a-continuing-human-composition-loop)
+- [Public foundations](#public-foundations)
+- [Install — Python 3.11+](#install--python-311)
+- [Compose and keep revising](#compose-and-keep-revising)
+- [Logic Pro + MCP — Mac](#logic-pro--mcp--mac)
+- [LoRA and theory review](#lora-and-theory-review)
+- [Private RAG (optional)](#private-rag-optional)
+- [Feedback, checks, and publication boundary](#feedback-checks-and-publication-boundary)
+- [Project and credits](#project-and-credits)
+- [Development handoff](#development-handoff)
 
 ## A continuing human composition loop
 
@@ -141,3 +159,7 @@ See [execution evidence and limitations](docs/verification.md). Loss and passing
 - [Hee-sung Kang](https://ikoffices.com/)
 - [Do-won Lee](https://music.bugs.co.kr/artist/80353758?wl_ref=list_ar_02_search)
 - [Sungmo Park](mailto:vividsaebom@gmail.com)
+
+## Development handoff
+
+[CONTEXT.md](CONTEXT.md) · [Model operations / 모델 운영](docs/MODEL_OPERATIONS.en.md) · [Reusable skill / 재사용 스킬](skills/model-tier-handoff/SKILL.md)

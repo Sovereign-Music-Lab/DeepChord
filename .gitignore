@@ -9,6 +9,8 @@
 !/pyproject.toml
 !/Start.command
 !/AGENTS.md
+!/CONTEXT.md
+!/skills/
 !/src/
 !/tests/
 !/scripts/

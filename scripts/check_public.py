@@ -9,8 +9,8 @@ import subprocess
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
-TOP={'.gitignore','.gitattributes','README.md','README.ko.md','LICENSE','NOTICE','pyproject.toml','Start.command','AGENTS.md','MANIFEST.in'}
-DIRS={'src','tests','scripts','docs','.github','site'}
+TOP={'.gitignore','.gitattributes','README.md','README.ko.md','LICENSE','NOTICE','pyproject.toml','Start.command','AGENTS.md','CONTEXT.md','MANIFEST.in'}
+DIRS={'src','tests','scripts','docs','.github','site','skills'}
 EXT={'.py','.md','.toml','.txt','.yml','.yaml','.command','.html','.css','.js','.svg','.xml'}
 TEXT_SPECIAL={'site/.nojekyll','site/LICENSE','site/NOTICE'}
 # Exact, visually reviewed public brand assets. No general binary-file exception.

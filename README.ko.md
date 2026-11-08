@@ -1,10 +1,28 @@
 # DeepChord
 
+**Authors / Project credits:** [Hee-sung Kang · 강희성](https://ikoffices.com/) · [Do-won Lee · 이도원](https://music.bugs.co.kr/artist/80353758?wl_ref=list_ar_02_search) · [Sungmo Park · 박성모](mailto:vividsaebom@gmail.com)
+
+[Organization](https://github.com/Sovereign-Music-Lab) · [Website](https://sovereign-music-lab.github.io/) · [DeepChord](https://github.com/Sovereign-Music-Lab/DeepChord) · [Sovereign DAW](https://github.com/Sovereign-Music-Lab/sovaroll-DAW) · [Sovereign Flow](https://github.com/Sovereign-Music-Lab/SovaFlow)
+
+## 초록
 [English](README.md) · **한국어**
 
 **Sovereign Music Lab · 로컬의 지식 → 편집 가능한 음악 → 사람의 다음 요청.**
 
 Linux·Windows·macOS에서 사용하는 로컬 피아노 작곡 도구입니다. 공개 이론 RAG와 코드 사전, Ollama 로컬 LLM, 선택적 LoRA, MIDI·설명과 지속 세션을 연결합니다. Mac에서는 Logic Pro와 MCP 상태 관측을 함께 사용할 수 있습니다.
+
+## 목차
+
+- [인간이 계속 주문하는 작곡 루프](#인간이-계속-주문하는-작곡-루프)
+- [공개 기초 자산](#공개-기초-자산)
+- [설치 — Python 3.11 이상](#설치--python-311-이상)
+- [작곡하고 계속 수정](#작곡하고-계속-수정)
+- [Logic Pro + MCP — Mac](#logic-pro--mcp--mac)
+- [LoRA와 이론 검토](#lora와-이론-검토)
+- [개인 RAG (선택)](#개인-rag-선택)
+- [피드백·검사·공개 범위](#피드백검사공개-범위)
+- [프로젝트와 크레딧](#프로젝트와-크레딧)
+- [개발 인계](#개발-인계)
 
 ## 인간이 계속 주문하는 작곡 루프
 
@@ -141,3 +159,7 @@ python scripts/check_site.py
 - [Hee-sung Kang · 강희성](https://ikoffices.com/)
 - [Do-won Lee · 이도원](https://music.bugs.co.kr/artist/80353758?wl_ref=list_ar_02_search)
 - [Sungmo Park · 박성모](mailto:vividsaebom@gmail.com)
+
+## 개발 인계
+
+[CONTEXT.md](CONTEXT.md) · [Model operations / 모델 운영](docs/MODEL_OPERATIONS.ko.md) · [Reusable skill / 재사용 스킬](skills/model-tier-handoff/SKILL.md)
