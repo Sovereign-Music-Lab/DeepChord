@@ -2,6 +2,8 @@
 
 **English** · [한국어](methodology.ko.md)
 
+The current version also includes independently authored public theory/chord foundation RAG. See [foundations and continuing sessions](foundation.md) for distributable assets, repeated requests, and platform scope. PDF preparation below concerns an optional private textbook provider.
+
 This document connects current implementation behavior with the checks a person must perform. See the [README](../README.md) for installation, [training](training.md) for adapters, and [Logic integration](logic.md) for handoff.
 
 ## 1. Prepare private PDFs as retrievable evidence
@@ -28,7 +30,7 @@ python "$MUSIC_RAG_ROOT/scripts/rag.py" query 'piano chord inversions' \
 deepchord rag 'piano chord inversions'
 ```
 
-Current `core.retrieve` executes `scripts/rag.py` under the configured root with the current Python interpreter and arguments `query TEXT --top 3 --kind concept --context`. Its timeout is 30 seconds and stdout becomes the evidence string. Provider failures propagate rather than silently becoming successful retrieval. Without a configured library, the run explicitly records that no book evidence was used.
+Current `core.retrieve` supplements public foundation context by executing `scripts/rag.py` under the configured root with the current Python interpreter and arguments `query TEXT --top 3 --kind concept --context`. Its timeout is 30 seconds and stdout becomes the evidence string. Provider failures propagate rather than silently becoming successful retrieval. Without a configured private library, built-in public foundation retrieval remains active and the run explicitly records that no book evidence was used.
 
 An external provider implementing this interface may search several books internally. DeepChord does not pass `--book` or discover PDFs itself. A `concept` result may include a clearly labeled reviewed index locator as well as a theory card; a locator must not be presented as a note transcription. Stdout should identify source, pages, images, review status, and query-relevant explanation, or explicitly state that no evidence was found. Send provider diagnostics to stderr.
 
@@ -45,7 +47,7 @@ The Ollama path checks installed-model metadata and refuses cloud models. `--ada
 
 The composition command accepts 1-16 bars in 4/4. JSON contains `title`, `tempo`, `bars`, one `chords` label per bar, and `tracks` with note fields `pitch`, `start`, `duration`, and `velocity`. Pitch is sounding MIDI integer C4=60; start and duration use quarter-note beats from zero. The prompt requests piano parts named `Melody` and `Accompaniment`, a memorable motif, dynamics, rests, and connected phrasing. The general validator accepts 1-3 tracks and up to 32 bars; this does not expand the composition command's range.
 
-Validation checks finite numbers, piano pitches 21-108, velocities 1-127, positive durations, form boundaries, and same-pitch overlaps within a track. Supported chord suffixes are `maj`, `m`, `maj7`, `maj9`, `m7`, `m9`, `7`, `9`, `13`, and `6`. A limited per-bar comparison checks `Accompaniment` against the chord's pitch-class set and required third and applicable seventh. It does not judge voice leading, playability, or creative quality. A reference book may use chord symbols outside the current supported vocabulary.
+Validation checks finite numbers, piano pitches 21-108, velocities 1-127, positive durations, form boundaries, and same-pitch overlaps within a track. The default generation prompt uses chord suffixes `maj`, `m`, `maj7`, `maj9`, `m7`, `m9`, `7`, `9`, `13`, and `6`. A limited per-bar comparison checks `Accompaniment` against the chord's pitch-class set and required third and applicable seventh. It does not judge voice leading, playability, or creative quality. A reference book may use chord symbols outside the current supported vocabulary.
 
 Invalid output receives one repair request with the validation error. Failure on both attempts does not become a successful composition. Private runs retain `request.json`, model responses, and `rag-evidence.txt`; successful runs also contain `composition.json`, `validation.json`, `composition.mid`, and `ARRANGEMENT.txt`. Failed runs may lack these final files. See the README for default run locations.
 

@@ -71,3 +71,14 @@ html[lang=en] .hero-desc strong{margin-left:0}
 @media(max-width:700px){.header{height:auto;display:grid;grid-template-columns:1fr auto;gap:12px;padding-top:22px;padding-bottom:20px}.header nav{grid-column:1/-1;grid-row:2;margin-left:0;gap:23px;font-size:11px}.language-switch{margin-left:0;font-size:10px;gap:8px}html[lang=en] .chapter-grid h2{font-size:31px}html[lang=en] .lead{font-size:26px}html[lang=en] .closing h2{font-size:36px}html[lang=en] .hero-desc{font-size:16px}html[lang=en] .hero-desc br:nth-child(2){display:block}.demo-control button{font-size:10px}.demo-note{font-size:9px}.product-flow span{overflow-wrap:anywhere}}
 .footer-links{display:flex;gap:18px;align-items:center;white-space:nowrap}
 @media(max-width:700px){.footer{grid-template-columns:1fr}.footer-links{grid-row:2;font-size:10px}.footer>span{grid-row:3}}
+
+/* Public foundations and the persistent human revision loop. */
+.foundation-section{padding-top:58px;padding-bottom:58px;border-top:1px solid #c6cbbc}
+.foundation-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:72px;margin-top:30px}
+.foundation-grid .lead{font-size:29px;line-height:1.55;letter-spacing:-.7px}
+.foundation-grid p{line-height:1.95;word-break:keep-all;overflow-wrap:anywhere}
+.human-loop{list-style:none;margin:0 0 24px;padding:0;border-top:1px solid #aebca5}
+.human-loop li{padding:16px 0;border-bottom:1px solid #c6cbbc;display:grid;gap:7px}
+.human-loop b{font-size:13px;font-weight:600;color:var(--green)}
+.human-loop span{font-size:13px;line-height:1.7}
+@media(max-width:700px){.foundation-section{padding-top:38px;padding-bottom:38px}.foundation-grid{grid-template-columns:minmax(0,1fr);gap:28px}.foundation-grid .lead{font-size:25px}}

@@ -46,3 +46,7 @@ deepchord train run --model /path/to/small/local-mlx-model --data /path/to/priva
 개발 검사는 `mlx-community/Qwen2.5-0.5B-Instruct-4bit`의 `a5339a4131f135d0fdc6a5c8b5bbed2753bbe0f3` 리비전으로 수행했습니다. 모델과 어댑터 모두 배포하지 않습니다. Gemma LoRA 학습이나 호환성을 주장하지 않습니다.
 
 자료: [MLX LoRA 문서](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/LORA.md), [검사에 사용한 모델 카드](https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit).
+
+## 공개 기초 자산과 반복 세션
+
+[공개 기초 자산 안내](foundation.ko.md)는 이론·코드 Q&A 학습 작업, 그룹 분리, 선택적 Transformers/PEFT 백엔드와 반복 세션을 설명합니다. 기존 작곡 JSON 레코드도 계속 지원합니다.

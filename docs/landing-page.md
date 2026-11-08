@@ -8,7 +8,7 @@ English: https://sovereign-music-lab.github.io/en/
 
 Website repository: https://github.com/Sovereign-Music-Lab/Sovereign-Music-Lab.github.io
 
-The source is `site/` inside this working repository. Only that subtree is published to the website repository. It contains static HTML/CSS/JavaScript, original brand images, bilingual documentation, license files, robots/sitemap files and `.nojekyll`. No original books, RAG records, models, adapters, generated music, or runtime configuration are included.
+The source is `site/` inside this working repository. Only that subtree is published to the website repository. It contains static HTML/CSS/JavaScript, original brand images, bilingual documentation, license files, robots/sitemap files and `.nojekyll`. No original books, book-derived RAG records, models, adapters, generated music, or runtime configuration are included.
 
 ## Edit and preview
 

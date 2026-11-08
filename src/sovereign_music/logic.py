@@ -19,7 +19,7 @@ def inspect(config):
 def open_run(run,config=None):
     if sys.platform!='darwin':raise ValueError('Logic Pro handoff requires macOS')
     run=Path(run).expanduser().resolve()
-    song=json.loads((run/'composition.json').read_text());validate(song)
+    song=json.loads((run/'composition.json').read_text(encoding='utf-8'));validate(song)
     midi=run/'composition.mid'
     # Regenerate from the reviewed event source, retaining all CC64 events.
     # Use a new file so a prior user-edited MIDI is never overwritten.

@@ -2,32 +2,41 @@
 
 **English** · [한국어](README.ko.md)
 
-**A Sovereign Music Lab project.**
+**Sovereign Music Lab · Local knowledge → editable music → the human's next request.**
 
-**Local knowledge → editable music → human performance.**
+A local piano composition toolkit for Linux, Windows, and macOS. It connects public theory RAG and a chord dictionary, an Ollama local LLM, optional LoRA, MIDI explanations, and persistent revision sessions. On a Mac, add Logic Pro handoff and MCP observation.
 
-DeepChord is a local-first piano composition toolkit: generate symbolic music with a local model, validate notes, export editable MIDI, hand it to Logic Pro, record human feedback, and train private MLX LoRA adapters.
-
-## RAG · LoRA → Local LLM → Logic Pro MCP → Composition
-
-DeepChord connects your private musical knowledge with local models to create music you can revise and perform in Logic Pro.
+## A continuing human composition loop
 
 ```mermaid
 flowchart LR
-    R[Private knowledge / RAG] --> L[Local LLM]
-    D[Reviewed examples] --> A[LoRA adapter]
-    A --> L
-    L --> M[Validated editable MIDI]
-    M --> P[Logic Pro]
-    C[Logic Pro MCP] -. Current: read-only diagnostics .-> P
-    P --> H[Human arrangement and performance]
+    H[Human composition / revision request] --> R[Theory RAG / chord dictionary]
+    R --> L[Ollama local LLM]
+    A[Optional LoRA review] --> L
+    L --> V[Note / harmony checks, explanation, MIDI]
+    V --> D[Mac: Logic Pro + MCP observation]
+    V --> P[Linux / Windows: MIDI to DAW]
+    D --> H
+    P --> H
 ```
 
-**Current implementation:** local composition, optional private RAG, private MLX LoRA training/reuse, MIDI validation, and full-file handoff to Logic Pro. The MCP client currently reads health/session/region state; a fully autonomous MCP composition/editing loop is a future extension. RAG retrieval and LoRA training are separate paths, and neither private data nor weights ship with this repository.
+Each new request revises the last successful version. Resume by session name after `/quit`; failures preserve earlier versions. Generation currently covers 1–16-bar piano sketches, not unattended finished orchestration, sound design, mixing, or complete Logic editing.
 
-## Install and try (Python 3.11+)
+## Public foundations
 
-Clone the repository and install locally:
+Includes **24 original theory cards + 32 interval formulas × 12 roots = 384 chord entries**. Retrieval and calculation require no PDF, account, or network. Original books, OCR, index/page locators, scores, and textbook examples are excluded.
+
+```sh
+deepchord rag 'major ii-V-I and rootless voicings'
+deepchord chord 'Cdim7'
+deepchord foundation --out /path/to/new/foundation
+```
+
+Exports reproduce 408 RAG records, 816 bilingual LoRA examples, and a provenance/hash manifest. The repository ships their TOML/formula sources and reproducible generation code. New wording and code use Apache-2.0; the project claims no monopoly on theoretical facts. See [foundations, rights boundaries, sessions, and platforms](docs/foundation.md).
+
+## Install — Python 3.11+
+
+Linux/macOS:
 
 ```sh
 git clone https://github.com/Sovereign-Music-Lab/DeepChord.git
@@ -36,108 +45,98 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install .
 deepchord doctor
-deepchord demo --out "$HOME/Music/sovereign-demo"
+deepchord demo --out "$HOME/Music/deepchord-demo"
 ```
 
-The demo needs no model, book, account or network after installation. It produces an original two-bar **deterministic installation fixture**, not an AI composition. Choose a new output directory for each run.
+Windows PowerShell:
 
-For AI composition, install [Ollama](https://ollama.com/) separately and obtain a locally runnable model suitable for your hardware. Then:
-
-```sh
-ollama list
-deepchord compose 'A warm jazz piano sketch in C major, ending on Cmaj7' --bars 4 --model YOUR_INSTALLED_LOCAL_MODEL
+```powershell
+git clone https://github.com/Sovereign-Music-Lab/DeepChord.git
+cd DeepChord
+py -3 -m venv .venv
+.venv\Scripts\python.exe -m pip install .
+.venv\Scripts\deepchord.exe doctor
+.venv\Scripts\deepchord.exe session --name my-song --model YOUR_INSTALLED_LOCAL_MODEL
 ```
 
-Replace `YOUR_INSTALLED_LOCAL_MODEL` with an installed tag. The local author's tested tag is `gemma4:12b-mlx`; it is not downloaded or included by this package. Cloud tags are rejected. Ollama requests go only to localhost, bypassing environment proxies. Generation is bounded to 1–16 bars and one repair attempt. Validation may reject the model output; failed attempts remain available privately for inspection.
+`demo` is a fixed installation fixture, not AI composition. Install/run [Ollama](https://ollama.com/) separately and inspect `ollama list`. The development Mac's default tag is `gemma4:12b-mlx`; that tag is not guaranteed on other operating systems. Supply an installed local model with `--model`. Cloud models are refused and models are not automatically downloaded.
 
-The legacy `sovereign-music` command remains an alias for compatibility.
-
-Runs default to `~/.local/share/sovereign-music/music/`. Set `SOVEREIGN_MUSIC_HOME` to use another private working directory. A source checkout also provides `Start.command` for a terminal launcher.
-
-## Automatic Logic handoff (macOS)
+## Compose and keep revising
 
 ```sh
-deepchord logic open "$HOME/Music/sovereign-demo"
-# Or compose and open in one command:
-deepchord compose 'A quiet four-bar piano sketch' --bars 4 --model YOUR_INSTALLED_LOCAL_MODEL --logic
+deepchord session --name my-song --model gemma4:12b-mlx --bars 4
+# First request: Make a warm C-major piano riff.
+# Next request: Keep the melody and leave more space in the accompaniment.
+# /explain /status /new /open /quit
 ```
 
-Logic Pro must be installed. The command creates a new full MIDI handoff file and asks macOS Launch Services to open it in Logic. Track notes, tempo and editable CC64 pedal events are preserved in the MIDI. Existing user-edited MIDI files are not overwritten. Save your work before opening a different project; Logic may show its native project/tempo dialogs. Instrument availability depends on your Logic library.
-
-`logic-handoff.json` explicitly separates **open request accepted** from **verified import/audio**. It never reports audible playback just because the app opened. GUI dialogs, native patch selection, saving and automatic listening are not automated in this release.
-
-Optional [Logic Pro MCP](https://github.com/MongLong0214/logic-pro-mcp) diagnostics:
+For a non-interactive list, repeat `--request 'first request' --request 'revision'`. For one composition:
 
 ```sh
-deepchord logic inspect --mcp-config /path/to/private/logic.toml
+deepchord compose 'A warm C-major piano sketch, ending on Cmaj7' --bars 4 --model gemma4:12b-mlx
+# Revise a specific earlier run:
+deepchord compose 'Leave more space in the accompaniment' --bars 4 --previous-run /path/to/run --model gemma4:12b-mlx
+```
+
+Every result preserves `composition.json`, editable `composition.mid`, `validation.json`, `EXPLANATION.md`, and `explanation.json`. Explanations distinguish chords and tones per bar, ii–V–I patterns detected in chord labels, and retrieved theory candidates. Retrieval is not proof of application. Recalculate after JSON edits with `deepchord explain RUN`.
+
+Runs default to `~/.local/share/sovereign-music/`; override with `SOVEREIGN_MUSIC_HOME`. Reusing a session name resumes it. Invalid model output gets one repair attempt, then records failure while allowing the next request. `Start.command` also opens a persistent session.
+
+## Logic Pro + MCP — Mac
+
+```sh
+deepchord session --name my-song --model gemma4:12b-mlx --logic \
+  --mcp-config /path/to/private/logic.toml
 deepchord logic open /path/to/run --mcp-config /path/to/private/logic.toml
 ```
 
-The private TOML may contain `[logic]` with `command`, optional `args`, and `[logic.env]`; existing `[mcp_servers.logic-pro]` config is also accepted. See [Logic connection](docs/logic.md). No Codex account is required for the toolkit. MCP is optional for full-file handoff and does not execute arbitrary tool choices from the model.
+The full MIDI preserves tempo, notes, and CC64 when requesting Logic to open it. Optional MCP reads session and region state. Save current work and resolve dialogs, instruments, playback, and project saving in Logic. The CLI's MCP integration is currently read-only; it does not complete automatic instrument selection, plug-in mixing, or project saving. `logic-handoff.json` separates request acceptance from verified import or audio. See [Logic integration](docs/logic.md).
+
+Logic runs on a Mac. On Linux/Windows, use `deepchord export RUN --out /path/to/new.mid` for another DAW, or transfer the file to a Mac. MIDI edits do not automatically update existing audio renders or edits made inside Logic.
+
+## LoRA and theory review
+
+```sh
+deepchord foundation --out /path/to/new/foundation
+deepchord train prepare /path/to/new/foundation/reviewed.jsonl --out /path/to/new/splits
+python -m pip install '.[train]'
+deepchord train run --backend mlx --model /path/to/local-mlx-model \
+  --data /path/to/new/splits --out /path/to/new/adapter --iters 100
+# Ollama composer plus a separate local LoRA theory reviewer:
+deepchord session --name my-song --model gemma4:12b-mlx \
+  --theory-model /path/to/local-mlx-model --theory-adapter /path/to/adapter
+```
+
+Reviewer responses remain unverified proposals checked against formulas and events. MLX adapters are not automatically injected into Ollama. `--adapter` separately selects direct local adapter inference for composition itself. For compatible unquantized Hugging Face models on Linux, Windows, or macOS, use `.[train-portable]` and `--backend transformers`. No automatic weight download/conversion. See [training](docs/training.md) and [foundation/backend scope](docs/foundation.md).
 
 ## Private RAG (optional)
 
-No book, PDF, OCR, RAG card, excerpt or index is bundled. Without a private RAG configuration, the program explicitly records that no book evidence was used. To connect an existing compatible local library:
+Public foundation RAG is built in. Connect a compatible external provider for private material you have rights to use:
 
 ```sh
 export MUSIC_RAG_ROOT=/path/to/your/private/musicRAG
-deepchord rag 'rootless ii–V voicings'
+deepchord rag 'piano chord inversions'
 ```
 
-The adapter invokes `scripts/rag.py query TEXT --top 3 --kind concept --context` with the current Python interpreter. Other libraries can implement this local interface. Retrieved evidence is sent only to the local model and stored in the private run directory. RAG is retrieval, not weight training.
+External `scripts/rag.py query TEXT --top 3 --kind concept --context` output supplements public evidence for the local model. Private evidence is not automatically merged into public foundations or training exports. See [method and verification](docs/methodology.md).
 
-The [method and verification guide](docs/methodology.md) covers source/page identity, OCR and score inspection, reviewed cards and retrieval checks, composition validation, and Logic handoff evidence. It separates external RAG preparation from features automated by the current CLI.
-
-## LoRA training and reuse (Apple Silicon)
-
-```sh
-python -m pip install '.[train]'
-deepchord train prepare /path/to/reviewed.jsonl --out /path/to/private/dataset
-deepchord train run --model /path/to/local-mlx-model --data /path/to/private/dataset --out /path/to/private/adapter --iters 100
-deepchord train generate 'Return a Cmaj7 piano sketch as JSON.' --model /path/to/local-mlx-model --adapter /path/to/private/adapter
-deepchord compose 'A four-bar piano sketch' --bars 4 --model /path/to/local-mlx-model --adapter /path/to/private/adapter
-```
-
-Training requires a compatible local MLX model directory, **not an Ollama model tag**. No automatic conversion or downloads occur. `mlx-lm[train]==0.32.2` is the tested optional dependency. Training and adapter inference run with Hugging Face offline mode and no remote-code opt-in. LoRA adapters remain local; no weights are fused into or uploaded with this repository.
-
-[Training guide](docs/training.md) describes the reviewed record format, grouped train/validation/test splits, a small pipeline smoke test, and limitations. A three-step smoke run verifies mechanics only; it is not evidence of useful musical fine-tuning, nor of Gemma adapter compatibility.
-
-## Human feedback
+## Feedback, checks, and publication boundary
 
 ```sh
 deepchord validate /path/to/run/composition.json
-deepchord feedback /path/to/run --rating 4 --note 'Leave more breathing room before the last phrase'
-```
-
-Feedback is stored with the composition hash. It does not silently retrain the model. JSON and edits made inside Logic do not automatically synchronize.
-
-## Privacy and distribution
-
-This repository contains **code, tests, documentation and reviewed website brand images**. Original PDFs, RAG data, datasets, model weights, LoRA adapters, generated MIDI/audio, Logic projects, personal configuration and runtime logs are excluded. The root ignore policy denies new top-level paths by default; the tracked-file scanner and CI provide an additional check. Keep runtime data in the external default directory or an ignored `.private/` folder.
-
-```sh
+deepchord feedback /path/to/run --rating 4 --note 'Leave more space before the final phrase'
 python -m unittest discover -s tests -v
 python scripts/check_public.py
 python scripts/check_site.py
-python -m pip install build
-python -m build
 ```
 
-The source code is licensed under [Apache License 2.0](LICENSE); this does not grant rights to any separate book, model, sample library or dataset. No remote repository or release is created by the package.
+Feedback does not automatically retrain weights. Public files include code, docs, tests, brand assets, and independently authored foundation TOML/formulas/generation code. Books and book-derived RAG, model weights/adapters, private datasets, generated music, settings, and logs remain private. Platform CI checks the base package on Linux, Windows, and macOS; actual model, DAW, and GPU training checks are separate.
 
-## Current verification scope
+See [execution evidence and limitations](docs/verification.md). Loss and passing tests do not establish musical quality.
 
-- MIDI byte round-trip tests, note ranges/timing, pedal releases, supported chord-label checks, cloud rejection, dataset split/privacy and handoff tests.
-- Real local Ollama composition exercised during development.
-- Real MLX QLoRA smoke training, held-out loss evaluation and adapter reload exercised on a small model.
-- A two-track MIDI fixture opened in Logic Pro 13.0 with 76 BPM and two Studio Grand tracks, then saved locally via GUI. This GUI test is distinct from the Launch Services command's mocked unit test.
-- General musical quality, automatic instrument assignment, fully unattended dialogs and professional listening evaluation are **not** validated. No “GPT-level composition” claim is made.
+## Project and credits
 
-## Project introduction
-
-Visit [Sovereign Music Lab](https://sovereign-music-lab.github.io/en/) for the project philosophy, credits and creative workflow. The static introduction lives in `site/`; [publishing notes](docs/landing-page.md) explain how only that subtree reaches GitHub Pages.
-
-## Credits
+[Sovereign Music Lab English site](https://sovereign-music-lab.github.io/en/) · [Publishing notes](docs/landing-page.md) · [Apache License 2.0](LICENSE)
 
 - [Hee-sung Kang](https://ikoffices.com/)
 - [Do-won Lee](https://music.bugs.co.kr/artist/80353758?wl_ref=list_ar_02_search)

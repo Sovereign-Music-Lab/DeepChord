@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deepchord"
-version = "0.2.2"
+version = "0.3.0"
 description = "DeepChord: private RAG and LoRA, local composition, and Logic Pro integration"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,6 +14,8 @@ dependencies = []
 
 [project.optional-dependencies]
 train = ["mlx-lm[train]==0.32.2; sys_platform == 'darwin' and platform_machine == 'arm64'"]
+
+train-portable = ["torch>=2.4,<3", "transformers>=4.45,<6", "peft>=0.14,<1", "accelerate>=1,<2"]
 
 [project.scripts]
 deepchord = "sovereign_music.cli:main"
@@ -26,3 +28,6 @@ Issues = "https://github.com/Sovereign-Music-Lab/DeepChord/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+sovereign_music = ["assets/*.toml"]

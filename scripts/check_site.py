@@ -26,7 +26,7 @@ class Page(HTMLParser):
         self.alternates = {}
         self.canonical = None
         self.icons = []
-        self.feed(path.read_text())
+        self.feed(path.read_text(encoding='utf-8'))
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
@@ -77,7 +77,7 @@ def main():
             assert target.is_file(), (lang, href)
             if url.fragment and target.suffix == '.html':
                 assert unquote(url.fragment) in Page(target).ids, (lang, href)
-        text = page.path.read_text()
+        text = page.path.read_text(encoding='utf-8')
         assert 'Sungmo Park' in text and 'APACHE 2.0' in text
         assert 'Seong-mo' not in text
         if lang == 'en':
@@ -88,12 +88,12 @@ def main():
     assert set(pages['ko'].ids) == set(pages['en'].ids)
     assert (SITE / 'LICENSE').read_bytes() == (ROOT / 'LICENSE').read_bytes()
     assert (SITE / 'NOTICE').read_bytes() == (ROOT / 'NOTICE').read_bytes()
-    assert tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['license'] == 'Apache-2.0'
-    for name in ['README.md', 'docs/logic.md', 'docs/training.md', 'docs/landing-page.md', 'site/README.md']:
+    assert tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))['project']['license'] == 'Apache-2.0'
+    for name in ['README.md', 'docs/logic.md', 'docs/training.md', 'docs/foundation.md', 'docs/verification.md', 'docs/landing-page.md', 'site/README.md']:
         path = ROOT / name
         partner = path.with_name(path.stem + '.ko.md')
         assert partner.is_file()
-        assert partner.name in path.read_text() and path.name in partner.read_text()
+        assert partner.name in path.read_text(encoding='utf-8') and path.name in partner.read_text(encoding='utf-8')
     print('Site checks passed: two static locales, reciprocal language links, anchors, assets, social metadata, credits and Apache-2.0.')
 
 

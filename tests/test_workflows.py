@@ -20,24 +20,24 @@ class WorkflowTests(unittest.TestCase):
     def test_group_split(self):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d);training.smoke_data(p/'input.jsonl');training.prepare(p/'input.jsonl',p/'data')
-            m=json.loads((p/'data/manifest.json').read_text());self.assertEqual(sum(m['counts'].values()),12)
+            m=json.loads((p/'data/manifest.json').read_text(encoding='utf-8'));self.assertEqual(sum(m['counts'].values()),12)
             self.assertEqual(set(m['group_split'].values()),{'train','valid','test'})
     def test_unreviewed_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'source.jsonl';training.smoke_data(p)
-            rows=[json.loads(x) for x in p.read_text().splitlines()];rows[0]['reviewed']=False;p.write_text('\n'.join(json.dumps(r) for r in rows))
+            rows=[json.loads(x) for x in p.read_text(encoding='utf-8').splitlines()];rows[0]['reviewed']=False;p.write_text('\n'.join(json.dumps(r) for r in rows))
             with self.assertRaises(ValueError):training.prepare(p,Path(d)/'data')
     def test_insufficient_groups(self):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'source.jsonl';training.smoke_data(p)
-            rows=[json.loads(x) for x in p.read_text().splitlines()]
+            rows=[json.loads(x) for x in p.read_text(encoding='utf-8').splitlines()]
             for r in rows:r['group_id']='same-song'
             p.write_text('\n'.join(json.dumps(r) for r in rows))
             with self.assertRaises(ValueError):training.prepare(p,Path(d)/'data')
     def test_duplicate_targets_across_splits(self):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'source.jsonl';training.smoke_data(p)
-            rows=[json.loads(x) for x in p.read_text().splitlines()]
+            rows=[json.loads(x) for x in p.read_text(encoding='utf-8').splitlines()]
             for r in rows:r['messages'][1]['content']=rows[0]['messages'][1]['content']
             p.write_text('\n'.join(json.dumps(r) for r in rows))
             with self.assertRaises(ValueError):training.prepare(p,Path(d)/'data')
@@ -57,6 +57,6 @@ class WorkflowTests(unittest.TestCase):
             p=Path(d)/'song';demo(p)
             with patch('sovereign_music.logic.sys.platform','darwin'),patch('sovereign_music.logic.subprocess.run',return_value=subprocess.CompletedProcess([],1,'','missing app')):
                 with self.assertRaises(RuntimeError):logic.open_run(p)
-            self.assertEqual(json.loads((p/'logic-handoff.json').read_text())['status'],'launch_failed')
+            self.assertEqual(json.loads((p/'logic-handoff.json').read_text(encoding='utf-8'))['status'],'launch_failed')
 
 if __name__=='__main__':unittest.main()

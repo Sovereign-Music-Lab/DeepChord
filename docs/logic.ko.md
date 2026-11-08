@@ -33,3 +33,7 @@ MCP 서버의 설치와 권한 설정은 해당 프로젝트의 안내를 따르
 현재 연동 대상의 `import_file`은 서버가 등록한 임시 파일 경로만 허용합니다. DeepChord는 이 경계를 준수하며 임시 경로를 위조하거나 서버를 수정하지 않습니다. `record_sequence`는 편집 가능한 CC64 데이터를 전달하지 못하므로 전체 MIDI의 대체 수단으로 쓰지 않습니다.
 
 자료: [Logic Pro MCP](https://github.com/MongLong0214/logic-pro-mcp), [MCP 수명 주기](https://modelcontextprotocol.io/specification/2025-03-26/basic/lifecycle).
+
+## 공개 기초 자산과 반복 세션
+
+[공개 기초 자산 안내](foundation.ko.md)는 Linux·Windows의 MIDI 내보내기와 Mac의 반복 세션 전달을 설명합니다. 기존 작곡 JSON 레코드도 계속 지원합니다.

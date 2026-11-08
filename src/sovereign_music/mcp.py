@@ -12,10 +12,10 @@ import tomllib
 
 class Client:
     def __init__(self,config):
-        data=tomllib.loads(Path(config).expanduser().read_text())
+        data=tomllib.loads(Path(config).expanduser().read_text(encoding='utf-8'))
         entry=data.get('mcp_servers',{}).get('logic-pro',data.get('logic'))
         if not entry or not entry.get('command'):raise ValueError('Configure [logic] command/args/env or an existing [mcp_servers.logic-pro] entry')
-        self.p=subprocess.Popen([entry['command'],*entry.get('args',[])],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,bufsize=1,env={**os.environ,**entry.get('env',{})})
+        self.p=subprocess.Popen([entry['command'],*entry.get('args',[])],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,encoding="utf-8",bufsize=1,env={**os.environ,**entry.get('env',{})})
         self.q=queue.Queue();self.seq=0
         threading.Thread(target=self._read,daemon=True).start()
         try:

@@ -2,30 +2,41 @@
 
 [English](README.md) · **한국어**
 
-**Sovereign Music Lab의 프로젝트입니다.**
+**Sovereign Music Lab · 로컬의 지식 → 편집 가능한 음악 → 사람의 다음 요청.**
 
-**로컬의 지식 → 편집 가능한 음악 → 사람의 연주.**
+Linux·Windows·macOS에서 사용하는 로컬 피아노 작곡 도구입니다. 공개 이론 RAG와 코드 사전, Ollama 로컬 LLM, 선택적 LoRA, MIDI·설명과 지속 세션을 연결합니다. Mac에서는 Logic Pro와 MCP 상태 관측을 함께 사용할 수 있습니다.
 
-DeepChord는 로컬 모델로 피아노 음표를 생성하고, 검증한 뒤 편집 가능한 MIDI로 내보내는 작곡 도구입니다. Logic Pro로 결과를 전달하고, 사람의 피드백을 기록하며, 개인 MLX LoRA 어댑터를 학습하고 재사용할 수 있습니다.
-
-## RAG · LoRA → 로컬 LLM → Logic Pro MCP → 작곡
+## 인간이 계속 주문하는 작곡 루프
 
 ```mermaid
 flowchart LR
-    R[개인 지식 / RAG] --> L[로컬 LLM]
-    D[검토한 예제] --> A[LoRA 어댑터]
-    A --> L
-    L --> M[검증된 편집 가능 MIDI]
-    M --> P[Logic Pro]
-    C[Logic Pro MCP] -. 현재: 읽기 전용 상태 확인 .-> P
-    P --> H[사람의 편곡과 연주]
+    H[인간: 작곡·수정 요청] --> R[이론 RAG / 코드 사전]
+    R --> L[Ollama 로컬 LLM]
+    A[선택적 LoRA 검토] --> L
+    L --> V[음표·화성 검사 / 이론·코드 설명 / MIDI]
+    V --> D[Mac: Logic Pro + MCP 관측]
+    V --> P[Linux·Windows: DAW로 MIDI 전달]
+    D --> H
+    P --> H
 ```
 
-**현재 구현 범위:** 로컬 작곡, 선택적 개인 RAG, 개인 MLX LoRA 학습·재사용, MIDI 검증, 전체 파일 단위 Logic 전달입니다. MCP 클라이언트는 상태·세션·리전 정보를 읽습니다. MCP로 작곡과 편집을 완전히 자동 수행하는 흐름은 향후 확장 대상입니다. RAG 검색과 LoRA 학습은 별개이며, 개인 자료와 모델 가중치는 저장소에 포함하지 않습니다.
+매번 새 주문을 받아 직전 성공 버전을 수정하고, `/quit` 이후에도 같은 이름으로 이어갑니다. 실패는 기록하며 이전 버전을 보존합니다. 현재 생성 범위는 1–16마디 피아노 스케치입니다. 완성곡의 모든 편성·음색·믹스나 Logic 편집을 무인 자동화했다고 주장하지 않습니다.
 
-## 설치하고 실행하기 — Python 3.11 이상
+## 공개 기초 자산
 
-Git과 Python을 준비하고 다음 명령을 실행하세요. 아래 예시는 macOS의 zsh/bash 기준입니다.
+교재와 독립적으로 작성한 **24개 이론 카드 + 32개 간격 공식 × 12근음 = 384개 코드 항목**을 포함합니다. 검색·코드 계산에는 PDF·계정·네트워크가 필요하지 않습니다. 원본 책, OCR, 목차·페이지 위치, 악보와 교재 예제는 포함하지 않습니다.
+
+```sh
+deepchord rag '장조 투파이브와 루트리스 보이싱'
+deepchord chord 'Cdim7'
+deepchord foundation --out /path/to/new/foundation
+```
+
+내보내기는 RAG 문서 408개와 한·영 LoRA 예제 816개, 출처·해시 명세를 재현합니다. 소스 TOML·수식과 공개 자료에서의 재생성 방법을 배포합니다. 새 문장·코드는 Apache-2.0이며 음악 이론의 사실 자체에 독점권을 주장하지 않습니다. [기초 자산·권리 구분·반복 루프·운영체제 안내](docs/foundation.ko.md)를 참고하세요.
+
+## 설치 — Python 3.11 이상
+
+Linux/macOS:
 
 ```sh
 git clone https://github.com/Sovereign-Music-Lab/DeepChord.git
@@ -34,104 +45,98 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install .
 deepchord doctor
-deepchord demo --out "$HOME/Music/sovereign-demo"
+deepchord demo --out "$HOME/Music/deepchord-demo"
 ```
 
-설치 후 demo에는 모델·책·계정·네트워크가 필요하지 않습니다. 생성되는 2마디 예제는 **설치 확인용 고정 패턴**이며 AI 작곡 결과가 아닙니다. 실행할 때마다 새 출력 폴더를 사용하세요. `doctor`에 Ollama 미연결 메시지가 표시되어도 demo는 실행할 수 있습니다.
+Windows PowerShell:
 
-AI 작곡에는 [Ollama](https://ollama.com/)를 별도로 설치·실행하고, 컴퓨터 사양에 맞는 로컬 모델을 준비하세요.
-
-```sh
-ollama list
-deepchord compose '따뜻한 C장조 재즈 피아노곡, 마지막은 Cmaj7' --bars 4 --model YOUR_INSTALLED_LOCAL_MODEL
+```powershell
+git clone https://github.com/Sovereign-Music-Lab/DeepChord.git
+cd DeepChord
+py -3 -m venv .venv
+.venv\Scripts\python.exe -m pip install .
+.venv\Scripts\deepchord.exe doctor
+.venv\Scripts\deepchord.exe session --name my-song --model YOUR_INSTALLED_LOCAL_MODEL
 ```
 
-`YOUR_INSTALLED_LOCAL_MODEL`을 설치된 모델 태그로 바꾸세요. 개발 환경에서 사용한 태그는 `gemma4:12b-mlx`이며, 이 패키지에 포함되거나 자동으로 다운로드되지 않습니다. 클라우드 태그는 거부하며, Ollama 요청은 환경 프록시를 우회해 localhost로만 보냅니다. 생성 범위는 1–16마디이며, 모델 출력 수정 시도는 1회로 제한됩니다. 검증에 실패한 결과는 공개하지 않고 로컬에서 확인할 수 있도록 보관합니다.
+`demo`는 고정 패턴의 설치 검사이며 AI 작곡이 아닙니다. [Ollama](https://ollama.com/)는 별도 설치·실행하고 `ollama list`에서 로컬 모델을 확인하세요. 개발 Mac의 기본 태그는 `gemma4:12b-mlx`입니다. 다른 운영체제에서 이 태그의 가용성을 보장하지 않으며 `--model`로 설치 모델을 지정합니다. 클라우드 모델은 거부하며 모델을 자동 다운로드하지 않습니다.
 
-기존 `sovereign-music` 명령도 호환용 별칭으로 사용할 수 있습니다. 기본 결과 위치는 `~/.local/share/sovereign-music/music/`입니다. `SOVEREIGN_MUSIC_HOME`으로 개인 작업 폴더를 변경할 수 있습니다. 소스 저장소에는 터미널 실행 도우미 `Start.command`도 있습니다.
-
-## Logic 자동 연결 — macOS
+## 작곡하고 계속 수정
 
 ```sh
-deepchord logic open "$HOME/Music/sovereign-demo"
-# 작곡 후 바로 Logic으로 전달:
-deepchord compose '조용한 4마디 피아노 스케치' --bars 4 --model YOUR_INSTALLED_LOCAL_MODEL --logic
+deepchord session --name my-song --model gemma4:12b-mlx --bars 4
+# 입력 예: 따뜻한 C장조 피아노 리프를 만들어줘
+# 다음 입력 예: 선율은 유지하고 반주를 더 비워줘
+# /explain /status /new /open /quit
 ```
 
-Logic Pro가 설치되어 있어야 합니다. 명령은 새 전체 MIDI 파일을 만들고 macOS Launch Services를 통해 Logic으로 엽니다. 음표, 템포, 편집 가능한 CC64 페달 이벤트를 MIDI에 보존하며, 사용자가 수정한 기존 MIDI를 덮어쓰지 않습니다. 다른 프로젝트를 열기 전에 현재 작업을 저장하세요. Logic의 프로젝트·템포 대화상자를 확인하고, 설치된 사운드 라이브러리에 맞게 악기를 선택해야 할 수 있습니다.
-
-`logic-handoff.json`은 **열기 요청 수락**과 **실제 가져오기·소리 재생 확인**을 구분합니다. 앱을 열었다는 이유로 소리를 검증했다고 보고하지 않습니다. 이 버전은 GUI 대화상자, 악기 선택, 프로젝트 저장, 자동 청취를 자동화하지 않습니다.
-
-선택적 [Logic Pro MCP](https://github.com/MongLong0214/logic-pro-mcp) 상태 확인:
+비대화형으로는 `--request '첫 주문' --request '수정 주문'`을 사용합니다. 한 번만 생성하려면:
 
 ```sh
-deepchord logic inspect --mcp-config /path/to/private/logic.toml
+deepchord compose '따뜻한 C장조 피아노 스케치, 마지막 Cmaj7' --bars 4 --model gemma4:12b-mlx
+# 특정 이전 결과를 수정:
+deepchord compose '반주를 더 비워줘' --bars 4 --previous-run /path/to/run --model gemma4:12b-mlx
+```
+
+매번 `composition.json`, 편집 가능한 `composition.mid`, `validation.json`, `EXPLANATION.md`, `explanation.json`을 보존합니다. 설명에는 마디별 코드와 구성음, 코드명에서 검출한 ii–V–I, 검색한 이론 후보를 구분합니다. 검색한 내용을 모두 실제로 적용했다고 표시하지 않습니다. `deepchord explain RUN`으로 JSON 수정 후 다시 계산합니다.
+
+실행 자료는 기본 `~/.local/share/sovereign-music/`에 저장하며 `SOVEREIGN_MUSIC_HOME`으로 바꿀 수 있습니다. 같은 세션 이름으로 재시작하면 이어집니다. 모델 출력이 음표·코드 검사를 통과하지 못하면 한 번 수정 요청 후 실패를 기록하고 다음 주문을 받습니다. `Start.command`도 지속 세션을 엽니다.
+
+## Logic Pro + MCP — Mac
+
+```sh
+deepchord session --name my-song --model gemma4:12b-mlx --logic \
+  --mcp-config /path/to/private/logic.toml
 deepchord logic open /path/to/run --mcp-config /path/to/private/logic.toml
 ```
 
-개인 TOML 파일의 `[logic]`에 `command`, 선택적 `args`, `[logic.env]`를 지정합니다. 기존 `[mcp_servers.logic-pro]` 설정도 지원합니다. [Logic 연결 안내](docs/logic.ko.md)를 참고하세요. DeepChord 사용에는 Codex 계정이 필요하지 않습니다. 전체 MIDI 파일을 열 때 MCP는 선택 사항이며, 모델이 임의로 선택한 도구를 실행하지 않습니다.
+전체 MIDI의 템포·음표·CC64를 유지해 Logic에 열기를 요청하고, 선택적 MCP로 세션·리전 상태를 읽습니다. 사용자가 현재 작업을 저장하고 대화상자·악기·재생·프로젝트 저장을 확인해야 합니다. CLI의 MCP는 현재 읽기 전용이며 자동 악기 선택·플러그인 믹스·프로젝트 저장을 완료하지 않습니다. `logic-handoff.json`은 요청 수락과 실제 가져오기·소리를 구분합니다. [Logic 안내](docs/logic.ko.md).
+
+Logic은 Mac에서 실행합니다. Linux·Windows에서는 `deepchord export RUN --out /path/to/new.mid`로 DAW에 전달하거나 Mac으로 파일을 옮깁니다. MIDI 수정은 이전에 렌더한 오디오나 Logic 내부 편집과 자동 동기화되지 않습니다.
+
+## LoRA와 이론 검토
+
+```sh
+deepchord foundation --out /path/to/new/foundation
+deepchord train prepare /path/to/new/foundation/reviewed.jsonl --out /path/to/new/splits
+python -m pip install '.[train]'
+deepchord train run --backend mlx --model /path/to/local-mlx-model \
+  --data /path/to/new/splits --out /path/to/new/adapter --iters 100
+# Ollama 작곡 + 별도 로컬 LoRA 이론 검토:
+deepchord session --name my-song --model gemma4:12b-mlx \
+  --theory-model /path/to/local-mlx-model --theory-adapter /path/to/adapter
+```
+
+이론 검토 응답은 미검증 제안으로 기록하고 수식·음표 검사로 대조합니다. MLX 어댑터를 Ollama에 자동 주입하지 않습니다. `--adapter`는 작곡 자체를 직접 로컬 어댑터 추론으로 실행하는 별도 선택입니다. Linux·Windows·macOS의 호환 비양자화 Hugging Face 모델에는 `.[train-portable]`와 `--backend transformers`를 사용할 수 있습니다. 가중치 다운로드·변환은 자동화하지 않습니다. [학습 안내](docs/training.ko.md), [기초 자산과 백엔드 범위](docs/foundation.ko.md).
 
 ## 개인 RAG (선택)
 
-책·PDF·OCR·RAG 카드·발췌문·색인은 포함하지 않습니다. 개인 RAG를 설정하지 않으면 책의 근거를 사용하지 않았다고 명시적으로 기록합니다. 호환되는 개인 로컬 라이브러리를 연결하려면:
+공개 기초 RAG는 기본 제공됩니다. 사용 권한이 있는 개인 교재를 추가하려면 외부 호환 제공자를 연결하세요.
 
 ```sh
 export MUSIC_RAG_ROOT=/path/to/your/private/musicRAG
-deepchord rag '투파이브 루트리스 보이싱'
+deepchord rag '피아노 코드 전위'
 ```
 
-어댑터는 현재 Python으로 `scripts/rag.py query TEXT --top 3 --kind concept --context`를 실행합니다. 다른 라이브러리도 이 로컬 인터페이스를 구현할 수 있습니다. 검색 근거는 로컬 모델에만 전달하고 개인 실행 폴더에 저장합니다. RAG 검색 자체는 모델 가중치를 학습하지 않습니다.
+외부 `scripts/rag.py query TEXT --top 3 --kind concept --context`의 결과를 공개 근거와 함께 로컬 모델에 전달합니다. 개인 자료와 근거는 공개 자산·학습 예제에 자동 합치지 않습니다. [전체 방법과 검증](docs/methodology.ko.md).
 
-PDF의 출처·페이지 기록, OCR과 악보 대조, 검토 카드·검색 검사, 작곡 검증과 Logic 전달의 확인 기준은 [자료에서 피아노 스케치까지: 방법과 검증](docs/methodology.ko.md)에 정리했습니다. 외부 RAG 준비 절차와 현재 CLI가 자동으로 수행하는 기능을 구분합니다.
-
-## LoRA 학습과 재사용 — Apple Silicon
-
-```sh
-python -m pip install '.[train]'
-deepchord train prepare /path/to/reviewed.jsonl --out /path/to/private/dataset
-deepchord train run --model /path/to/local-mlx-model --data /path/to/private/dataset --out /path/to/private/adapter --iters 100
-deepchord train generate 'Return a Cmaj7 piano sketch as JSON.' --model /path/to/local-mlx-model --adapter /path/to/private/adapter
-deepchord compose '4마디 피아노 스케치' --bars 4 --model /path/to/local-mlx-model --adapter /path/to/private/adapter
-```
-
-학습에는 호환되는 **로컬 MLX 모델 폴더**가 필요합니다. Ollama 태그를 입력하면 안 됩니다. 자동 변환이나 다운로드는 하지 않습니다. 검증한 선택 의존성은 `mlx-lm[train]==0.32.2`입니다. 학습과 어댑터 추론에는 Hugging Face 오프라인 모드를 적용하며 원격 코드 실행을 허용하지 않습니다. 어댑터는 로컬에 보관하며 이 저장소에 합치거나 업로드하지 않습니다.
-
-[학습 안내](docs/training.ko.md)는 검토 기록 형식, 그룹 단위 학습·검증·테스트 분리, 소형 모델 실행 검사와 한계를 설명합니다. 3회 반복 학습 검사는 실행 경로만 확인하며, 음악적으로 유용한 학습이나 Gemma 어댑터 호환성의 근거가 아닙니다.
-
-## 사람의 피드백
+## 피드백·검사·공개 범위
 
 ```sh
 deepchord validate /path/to/run/composition.json
-deepchord feedback /path/to/run --rating 4 --note '마지막 프레이즈 전에 숨 쉴 공간을 더 주세요'
-```
-
-피드백은 작곡 데이터의 해시와 함께 저장하며, 자동으로 재학습하지 않습니다. JSON과 Logic 내부 수정도 자동 동기화되지 않습니다.
-
-## 비공개 자료와 배포
-
-공개 저장소는 **코드·테스트·문서와 검토된 웹 브랜드 이미지**를 담습니다. 원본 PDF, RAG 데이터, 학습 데이터, 모델 가중치, LoRA 어댑터, 생성된 MIDI·오디오, Logic 프로젝트, 개인 설정과 실행 로그는 제외합니다. 기본적으로 새 최상위 경로의 Git 추가를 막고, 추적 파일 검사와 CI로 다시 확인합니다. 실행 자료는 외부 기본 작업 폴더 또는 Git에서 제외된 `.private/`에 보관하세요.
-
-```sh
+deepchord feedback /path/to/run --rating 4 --note '마지막 구절에 더 여유를 주세요'
 python -m unittest discover -s tests -v
 python scripts/check_public.py
 python scripts/check_site.py
-python -m pip install build
-python -m build
 ```
 
-소스 코드는 [Apache License 2.0](LICENSE)을 따릅니다. 별도 교재, 모델, 샘플 라이브러리, 학습 자료의 권리는 해당 권리자와 별도 조건을 따릅니다. 패키지는 원격 저장소나 릴리스를 자동 생성하지 않습니다.
+피드백은 자동 재학습을 유발하지 않습니다. 공개 저장소는 코드·문서·테스트·브랜드 이미지와 독립 작성한 기초 TOML·공식·생성 방법을 담습니다. 교재·교재 기반 RAG, 모델 가중치·어댑터·개인 데이터·생성 음악·설정·실행 로그는 제외합니다. 플랫폼 CI는 Linux·Windows·macOS에서 기본 패키지를 검사하며 실제 모델·DAW·GPU 학습 검사는 별도로 기록합니다.
 
-## 확인한 범위
+[실행 확인과 제한](docs/verification.ko.md)에서 실제 학습·세션 검증 범위를 확인하세요. 손실이나 테스트 통과만으로 음악적 품질을 보장하지 않습니다.
 
-- MIDI 바이트 왕복, 음표 범위·타이밍·페달 종료, 지원 코드 이름, 클라우드 거부, 데이터 분리·비공개 처리, 파일 전달 테스트.
-- 실제 로컬 Ollama를 사용한 개발 중 작곡 실행.
-- 소형 모델의 MLX QLoRA 학습, 별도 테스트 손실 계산과 어댑터 재로딩.
-- 76 BPM, 두 개 Studio Grand 트랙의 MIDI 예제를 Logic Pro 13.0에서 열고 GUI로 로컬 저장. 이 확인은 Launch Services의 모의 단위 테스트와 별개입니다.
-- 전반적 음악 품질, 자동 악기 배정, 완전 무인 대화상자 처리, 전문 청취 평가는 검증하지 않았습니다. 특정 GPT 수준의 작곡 능력을 주장하지 않습니다.
+## 프로젝트와 크레딧
 
-## 프로젝트 소개와 크레딧
-
-[Sovereign Music Lab 한국어 사이트](https://sovereign-music-lab.github.io/)에서 철학, 크레딧과 창작 흐름을 볼 수 있습니다. 사이트 소스는 `site/`에 있습니다. [배포 안내](docs/landing-page.ko.md)는 이 하위 폴더만 GitHub Pages로 공개하는 방법을 설명합니다.
+[Sovereign Music Lab 한국어 사이트](https://sovereign-music-lab.github.io/) · [사이트 배포](docs/landing-page.ko.md) · [Apache License 2.0](LICENSE)
 
 - [Hee-sung Kang · 강희성](https://ikoffices.com/)
 - [Do-won Lee · 이도원](https://music.bugs.co.kr/artist/80353758?wl_ref=list_ar_02_search)

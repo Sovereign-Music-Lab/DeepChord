@@ -1,0 +1,225 @@
+# Copyright 2026 Sovereign Music Lab contributors
+# SPDX-License-Identifier: Apache-2.0
+# Independently authored explanations and conventional interval formulas.
+# No book text, OCR, page locators, example scores, or book ordering imported.
+version = 1
+origin = "independently_authored_general_music_theory_and_algorithmic_formulas"
+license = "Apache-2.0"
+
+[qualities.maj]
+intervals = [0, 4, 7]
+degrees = [1, 3, 5]
+[qualities.m]
+intervals = [0, 3, 7]
+degrees = [1, 3, 5]
+[qualities.dim]
+intervals = [0, 3, 6]
+degrees = [1, 3, 5]
+[qualities.aug]
+intervals = [0, 4, 8]
+degrees = [1, 3, 5]
+[qualities.sus2]
+intervals = [0, 2, 7]
+degrees = [1, 2, 5]
+[qualities.sus4]
+intervals = [0, 5, 7]
+degrees = [1, 4, 5]
+[qualities."5"]
+intervals = [0, 7]
+degrees = [1, 5]
+[qualities."6"]
+intervals = [0, 4, 7, 9]
+degrees = [1, 3, 5, 6]
+[qualities.m6]
+intervals = [0, 3, 7, 9]
+degrees = [1, 3, 5, 6]
+[qualities."6/9"]
+intervals = [0, 4, 7, 9, 14]
+degrees = [1, 3, 5, 6, 9]
+[qualities.m6add9]
+intervals = [0, 3, 7, 9, 14]
+degrees = [1, 3, 5, 6, 9]
+[qualities.maj7]
+intervals = [0, 4, 7, 11]
+degrees = [1, 3, 5, 7]
+[qualities.m7]
+intervals = [0, 3, 7, 10]
+degrees = [1, 3, 5, 7]
+[qualities."7"]
+intervals = [0, 4, 7, 10]
+degrees = [1, 3, 5, 7]
+[qualities.m7b5]
+intervals = [0, 3, 6, 10]
+degrees = [1, 3, 5, 7]
+[qualities.dim7]
+intervals = [0, 3, 6, 9]
+degrees = [1, 3, 5, 7]
+[qualities.mMaj7]
+intervals = [0, 3, 7, 11]
+degrees = [1, 3, 5, 7]
+[qualities.add9]
+intervals = [0, 4, 7, 14]
+degrees = [1, 3, 5, 9]
+[qualities.maj9]
+intervals = [0, 4, 7, 11, 14]
+degrees = [1, 3, 5, 7, 9]
+[qualities.m9]
+intervals = [0, 3, 7, 10, 14]
+degrees = [1, 3, 5, 7, 9]
+[qualities."9"]
+intervals = [0, 4, 7, 10, 14]
+degrees = [1, 3, 5, 7, 9]
+[qualities."7b9"]
+intervals = [0, 4, 7, 10, 13]
+degrees = [1, 3, 5, 7, 9]
+[qualities."7#9"]
+intervals = [0, 4, 7, 10, 15]
+degrees = [1, 3, 5, 7, 9]
+[qualities."7b5"]
+intervals = [0, 4, 6, 10]
+degrees = [1, 3, 5, 7]
+[qualities."7#5"]
+intervals = [0, 4, 8, 10]
+degrees = [1, 3, 5, 7]
+[qualities."7sus4"]
+intervals = [0, 5, 7, 10]
+degrees = [1, 4, 5, 7]
+[qualities.m11]
+intervals = [0, 3, 7, 10, 14, 17]
+degrees = [1, 3, 5, 7, 9, 11]
+[qualities."11"]
+intervals = [0, 4, 7, 10, 14, 17]
+degrees = [1, 3, 5, 7, 9, 11]
+[qualities."maj7#11"]
+intervals = [0, 4, 7, 11, 18]
+degrees = [1, 3, 5, 7, 11]
+[qualities."9#11"]
+intervals = [0, 4, 7, 10, 14, 18]
+degrees = [1, 3, 5, 7, 9, 11]
+[qualities."13"]
+intervals = [0, 4, 7, 10, 14, 21]
+degrees = [1, 3, 5, 7, 9, 13]
+[qualities.m13]
+intervals = [0, 3, 7, 10, 14, 17, 21]
+degrees = [1, 3, 5, 7, 9, 11, 13]
+
+[[theory]]
+id = "motif"
+aliases = ["동기", "리프", "riff", "motif", "반복"]
+ko = "짧은 동기는 반복할 음형과 바꿀 요소를 나누어 설계한다. 리듬을 유지하며 끝음·음역·강세 중 하나를 바꾸면 연결감을 유지하면서 구절을 발전시킬 수 있다."
+en = "A short motif can retain its rhythm while changing an ending, register, or accent. Plan repetition and variation separately so the phrase has both identity and direction."
+[[theory]]
+id = "phrase"
+aliases = ["프레이즈", "호흡", "phrase", "breath"]
+ko = "프레이즈에는 출발·진행·도착과 쉼의 위치가 있다. 모든 음을 붙이기보다 선율의 도착점과 악기의 호흡에 맞춰 연결 길이를 정한다."
+en = "A phrase has a departure, motion, arrival, and space. Set note connections around these points and the instrument's breathing rather than joining every note."
+[[theory]]
+id = "voice-leading"
+aliases = ["성부", "voice leading", "공통음", "보이싱", "voicing"]
+ko = "성부 연결은 각 음이 다음 화음의 어느 음으로 가는지를 다룬다. 공통음 유지와 가까운 이동을 후보로 삼되 베이스 방향·선율 위치·음역을 함께 판단한다."
+en = "Voice leading tracks individual notes between harmonies. Retain common tones and consider nearby destinations, while also checking bass direction, melody placement, and register."
+[[theory]]
+id = "register"
+aliases = ["저역", "음역", "register", "muddy"]
+ko = "같은 구성음도 옥타브와 간격에 따라 역할이 달라진다. 낮은 음역의 촘촘한 배치는 탁해질 수 있으므로 베이스와 내성의 간격을 실제 음색으로 비교한다."
+en = "Octave and spacing change how a pitch collection functions. Compare wider bass-to-inner-voice spacing when a dense low register obscures the harmony."
+[[theory]]
+id = "major-diatonic"
+aliases = ["다이어토닉", "diatonic", "장조", "major scale"]
+ko = "장음계의 반음 간격은 2·2·1·2·2·2·1이다. 각 음에서 3도씩 쌓은 7화음의 성질은 maj7·m7·m7·maj7·7·m7·m7b5 순서다."
+en = "The major scale steps are 2,2,1,2,2,2,1 semitones. Stacking diatonic thirds produces seventh qualities maj7,m7,m7,maj7,7,m7,m7b5."
+[[theory]]
+id = "major251"
+aliases = ["투파이브", "ii-v", "ii v i", "two five", "251"]
+ko = "장조 ii–V–I는 으뜸화음으로 향하는 연결 방식이다. C장조에서는 Dm7–G7–Cmaj7이 한 예이며, 실제 리듬·전위·확장음은 선율과 구절에 맞게 선택한다."
+en = "A major ii–V–I connects a predominant and dominant to tonic. Dm7–G7–Cmaj7 is a C-major example; rhythm, inversions, and extensions remain arrangement choices."
+[[theory]]
+id = "minor251"
+aliases = ["단조 투파이브", "minor ii-v", "minor251", "반감"]
+ko = "단조 종지의 흔한 출발은 iiø7–V7–i이다. D단조라면 Em7b5–A7–Dm을 비교할 수 있다. 도미넌트의 변화음은 도착 화음과 선율에 따라 고른다."
+en = "A common minor cadence begins iiø7–V7–i, such as Em7b5–A7–Dm in D minor. Choose altered dominant tones with regard to the destination and melody."
+[[theory]]
+id = "guide-tones"
+aliases = ["가이드톤", "guide tone", "3도", "7도", "셸", "shell"]
+ko = "여러 7화음에서 3도와 7도는 화음의 성질을 드러내는 중요한 음이다. G7의 B·F가 C화음의 C·E로 향하는 움직임처럼 도착 화음에 맞는 연결을 확인한다."
+en = "Thirds and sevenths identify many seventh-chord qualities. Examine their destinations, for example B and F of G7 moving toward C and E of C harmony."
+[[theory]]
+id = "rootless"
+aliases = ["루트리스", "rootless", "루트 생략"]
+ko = "루트를 다른 악기가 분명히 제시하면 건반 반주에서 이를 생략할 수 있다. 3도·7도와 필요한 색채음을 남기고, 독주에서는 저음 문맥이 충분한지 다시 확인한다."
+en = "A keyboard voicing may omit the root when another part establishes it. Keep identifying tones and selected colors; recheck bass context when arranging for solo piano."
+[[theory]]
+id = "secondary"
+aliases = ["세컨더리", "secondary dominant", "부속", "이차 도미넌트"]
+ko = "이차 도미넌트는 현재 조의 다른 화음을 잠시 도착점으로 삼는다. C장조에서 A7이 Dm으로 향할 수 있지만 짧은 강조만으로 전체 조바꿈을 확정하지 않는다."
+en = "A secondary dominant temporarily targets another chord. A7 may lead to Dm in C major, without every such tonicization establishing a new key."
+[[theory]]
+id = "tritone"
+aliases = ["트라이톤", "tritone", "대리코드", "substitution"]
+ko = "도미넌트와 트라이톤 떨어진 도미넌트는 이명동음으로 대응하는 3도·7도를 공유할 수 있다. G7 대신 Db7을 C로 연결할 때 베이스와 선율의 충돌도 확인한다."
+en = "Dominants a tritone apart can share enharmonically related thirds and sevenths. In a Db7-to-C replacement for G7-to-C, also check bass motion and melody compatibility."
+[[theory]]
+id = "borrowed"
+aliases = ["차용", "borrowed", "모달 인터체인지", "minor iv"]
+ko = "같은 으뜸음의 다른 음계에서 화음을 빌리면 기존 조성 안에 다른 색채를 만들 수 있다. 장조의 iv단화음 같은 선택은 선율의 변화음과 함께 검토한다."
+en = "Borrowing from a parallel mode adds color within a tonal context. A minor iv in major should be checked against the melody's altered scale degrees."
+[[theory]]
+id = "tensions"
+aliases = ["텐션", "tension", "9도", "11도", "13도", "extension"]
+ko = "9·11·13도는 확장된 2·4·6도다. 모두 쌓기보다 화음 성질·선율·배치에 필요한 음을 고른다. 도미넌트의 자연11도와 장3도는 가까이 놓이면 강하게 마찰한다."
+en = "Ninths, elevenths, and thirteenths are compound second, fourth, and sixth degrees. Select them for harmony, melody, and spacing; a natural eleventh near a dominant's major third creates a strong rub."
+[[theory]]
+id = "inversion"
+aliases = ["전위", "inversion", "자리바꿈", "슬래시", "slash"]
+ko = "전위는 화음 구성음 중 어느 음이 베이스에 놓이는지 구별한다. 단일 베이스를 지정한 슬래시 기호와 두 화음을 함께 적는 복조 표기는 별도로 해석한다."
+en = "Inversion identifies which chord tone lies in the bass. Distinguish a slash naming one bass note from a notation that combines two complete chords."
+[[theory]]
+id = "dim-distinction"
+aliases = ["디미니쉬", "diminished", "dim7", "감7", "감3"]
+ko = "감3화음의 간격은 0·3·6반음이며 완전감7화음은 9반음을 더한다. 반감7화음은 대신 10반음을 더한다. 음높이가 같아도 감7도의 철자는 단6도와 구별한다."
+en = "A diminished triad uses 0,3,6 semitones; a diminished seventh adds 9, while a half-diminished seventh adds 10. Preserve the diminished-seventh spelling even when it sounds like a sixth."
+[[theory]]
+id = "sus"
+aliases = ["서스", "sus", "suspension"]
+ko = "sus4의 기본 구조는 루트·완전4도·완전5도다. 3도 대신 놓인 4도의 해결 여부는 구절에 달려 있으며 7도의 종류는 별도로 읽는다."
+en = "A basic sus4 contains root, perfect fourth, and perfect fifth. Phrase context determines whether its fourth resolves; read any seventh quality separately."
+[[theory]]
+id = "six-nine"
+aliases = ["식스 나인", "six nine", "6/9"]
+ko = "메이저6/9는 장3화음에 6도와 9도를 더한 집합이다. maj9의 장7도와 같은 것으로 취급하지 않고 선율의 긴 음과 최상성 배치를 비교한다."
+en = "Major 6/9 combines a major triad with sixth and ninth. It differs from maj9's major seventh; compare its spacing against sustained melody notes."
+[[theory]]
+id = "quartal"
+aliases = ["4도", "quartal", "완전4도"]
+ko = "4도 간격을 중심으로 쌓은 보이싱은 3도 적층과 다른 간격 구조를 갖는다. 베이스·문맥·최상성에 따라 해석이 달라지므로 하나의 코드 이름으로 단정하지 않는다."
+en = "Voicings built around fourths differ from third-stacked structures. Bass, context, and the top voice influence interpretation, so one chord label need not describe every use."
+[[theory]]
+id = "pedal"
+aliases = ["페달", "서스테인", "pedal", "sustain", "legato"]
+ko = "댐퍼 페달은 건반을 놓은 뒤에도 울림을 유지한다. 화성 전환과 쉼에서 해제 지점을 정하고 마지막 CC64를 0으로 종료한다. 잔향·음 길이·페달은 서로 다른 요소다."
+en = "Damper pedal sustains resonance after a key is released. Place releases around harmony changes and rests, finish CC64 at zero, and distinguish pedal from note length and reverb."
+[[theory]]
+id = "shuffle"
+aliases = ["셔플", "shuffle", "하프타임", "half time"]
+ko = "셔플은 박 안의 긴 음·짧은 음 배분을 활용한다. 하프타임 백비트와 고스트 노트는 다른 역할이며, 일정한 비율만으로 연주의 감각을 모두 결정할 수 없다."
+en = "Shuffle uses unequal long-short subdivisions. Half-time backbeat placement and ghost notes serve different roles; a fixed ratio alone does not define the whole performance."
+[[theory]]
+id = "modulation"
+aliases = ["전조", "조바꿈", "modulation", "pivot"]
+ko = "새 으뜸음으로의 이동은 도착 화음·선율·구절의 지지로 확인한다. 목적 조의 ii–V, 공통 화음 또는 직접 이동을 후보로 비교하며 원래 조의 짧은 강조와 구별한다."
+en = "A new tonal center needs harmonic, melodic, and phrase support. Compare a target-key ii–V, pivot chord, or direct move, and distinguish modulation from a brief tonicization."
+[[theory]]
+id = "form"
+aliases = ["형식", "form", "후렴", "대비"]
+ko = "곡의 구간 대비는 음 수만으로 만들지 않는다. 동기의 길이·음역·리듬·화성 리듬·편성의 변화를 계획하고 반복 구간의 역할을 유지한다."
+en = "Section contrast can come from motif length, register, rhythm, harmonic rhythm, or instrumentation. Plan those changes while preserving the identity of returning sections."
+[[theory]]
+id = "evidence"
+aliases = ["검증", "설명", "evidence", "explain"]
+ko = "검색한 이론은 제안의 근거이며 실제 적용은 결과 음표와 화성을 대조해야 확인된다. 어떤 코드와 구성음을 썼는지 기록하고, 추정한 기능과 확인한 사실을 구분한다."
+en = "Retrieved theory supports a proposal; applying it must be checked against the resulting notes and harmony. Record chord spellings and distinguish inferred function from verified events."
+[[theory]]
+id = "minor-scales"
+aliases = ["단음계", "minor scale", "화성단음계", "가락단음계"]
+ko = "자연단음계·화성단음계·가락단음계는 6도·7도의 선택이 다르다. 단조에서 사용할 음을 하나의 고정 집합으로 강제하지 않고 화음과 선율의 진행을 함께 검토한다."
+en = "Natural, harmonic, and melodic minor differ in their sixth and seventh degrees. In minor, choose notes with harmonic and melodic motion rather than enforcing one fixed collection everywhere."

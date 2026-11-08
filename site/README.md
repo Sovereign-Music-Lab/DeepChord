@@ -35,4 +35,4 @@ The website includes a vector favicon, PNG/ICO fallbacks, a touch icon and separ
 
 ## License and private materials
 
-Code is licensed under [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution. Original PDFs, RAG records, model weights, adapters, datasets, private configuration and personal music are not included.
+Code is licensed under [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution. Original PDFs, book-derived RAG records, model weights, adapters, datasets, private configuration and personal music are not included.

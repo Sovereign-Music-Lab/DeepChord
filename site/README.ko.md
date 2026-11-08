@@ -35,4 +35,4 @@ python3 -m http.server 8765 --bind 127.0.0.1 --directory site
 
 ## 라이선스와 비공개 자료
 
-코드는 [Apache License 2.0](LICENSE)을 따릅니다. 저작권 표기는 [NOTICE](NOTICE)를 확인하세요. 원본 PDF, RAG 기록, 모델 가중치, 어댑터, 학습 자료, 개인 설정과 개인 음악은 포함하지 않습니다.
+코드는 [Apache License 2.0](LICENSE)을 따릅니다. 저작권 표기는 [NOTICE](NOTICE)를 확인하세요. 원본 PDF, 교재 기반 RAG 기록, 모델 가중치, 어댑터, 학습 자료, 개인 설정과 개인 음악은 포함하지 않습니다.

@@ -33,3 +33,7 @@ Install and grant permissions to the MCP server using its upstream instructions.
 The current upstream `import_file` restricts paths to its own registered temporary files. The toolkit respects that boundary and does not forge temporary paths or rewrite the server. `record_sequence` is not used as a replacement for full MIDI because it does not carry our editable CC64 data.
 
 Sources: [Logic Pro MCP](https://github.com/MongLong0214/logic-pro-mcp), [MCP lifecycle](https://modelcontextprotocol.io/specification/2025-03-26/basic/lifecycle).
+
+## Public foundations and continuing sessions
+
+[The foundation guide](foundation.md) covers Linux/Windows MIDI export and repeated Mac session handoff. Existing composition JSON records remain supported.

@@ -46,3 +46,7 @@ The smoke generator creates synthetic chord exercises from code. The examples ar
 The development test used `mlx-community/Qwen2.5-0.5B-Instruct-4bit` at revision `a5339a4131f135d0fdc6a5c8b5bbed2753bbe0f3`; neither it nor its adapter is distributed here. No Gemma LoRA training or compatibility is claimed.
 
 Sources: [MLX LoRA documentation](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/LORA.md), [smoke-test model card](https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit).
+
+## Public foundations and continuing sessions
+
+[The foundation guide](foundation.md) covers theory/chord Q&A training tasks, family-based splits, the optional Transformers/PEFT backend, and persistent sessions. Existing composition JSON records remain supported.

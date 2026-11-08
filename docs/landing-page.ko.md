@@ -6,7 +6,7 @@
 - English: https://sovereign-music-lab.github.io/en/
 - 웹사이트 저장소: https://github.com/Sovereign-Music-Lab/Sovereign-Music-Lab.github.io
 
-소스는 DeepChord 저장소의 `site/`에 있습니다. 이 하위 폴더만 웹사이트 저장소에 배포합니다. 정적 HTML·CSS·JavaScript, 로고·공유 이미지, 문서·라이선스, 검색 엔진 안내 파일을 포함합니다. 원본 교재, RAG 기록, 모델·어댑터, 생성 음악과 개인 실행 설정은 포함하지 않습니다.
+소스는 DeepChord 저장소의 `site/`에 있습니다. 이 하위 폴더만 웹사이트 저장소에 배포합니다. 정적 HTML·CSS·JavaScript, 로고·공유 이미지, 문서·라이선스, 검색 엔진 안내 파일을 포함합니다. 원본 교재, 교재 기반 RAG 기록, 모델·어댑터, 생성 음악과 개인 실행 설정은 포함하지 않습니다.
 
 ## 수정과 미리보기
 
