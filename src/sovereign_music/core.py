@@ -189,6 +189,6 @@ def compose(args):
     dump(run/'composition.json',song); dump(run/'validation.json',report)
     write_midi(song,run/'composition.mid')
     (run/'feedback.jsonl').touch()
-    (run/'ARRANGEMENT.txt').write_text('Local LLM original piano sketch. 4/4; C4=60.\nSource: rag-evidence.txt (reviewed concept paraphrases, not verified score transcription).\nCC64 repedals each bar. Assign native piano in Logic. GM program 0 is only an import hint.\nNot auditioned; no Logic project or audio render is claimed.\n')
+    (run/'ARRANGEMENT.txt').write_text('Local LLM original piano sketch. 4/4; C4=60.\nSource: rag-evidence.txt (external reference evidence; check the review scope of each result, not a verified score transcription).\nCC64 repedals each bar. Assign native piano in Logic. GM program 0 is only an import hint.\nNot auditioned; no Logic project or audio render is claimed.\n')
     print(run)
     return run

@@ -82,6 +82,8 @@ deepchord rag '투파이브 루트리스 보이싱'
 
 어댑터는 현재 Python으로 `scripts/rag.py query TEXT --top 3 --kind concept --context`를 실행합니다. 다른 라이브러리도 이 로컬 인터페이스를 구현할 수 있습니다. 검색 근거는 로컬 모델에만 전달하고 개인 실행 폴더에 저장합니다. RAG 검색 자체는 모델 가중치를 학습하지 않습니다.
 
+PDF의 출처·페이지 기록, OCR과 악보 대조, 검토 카드·검색 검사, 작곡 검증과 Logic 전달의 확인 기준은 [자료에서 피아노 스케치까지: 방법과 검증](docs/methodology.ko.md)에 정리했습니다. 외부 RAG 준비 절차와 현재 CLI가 자동으로 수행하는 기능을 구분합니다.
+
 ## LoRA 학습과 재사용 — Apple Silicon
 
 ```sh

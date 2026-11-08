@@ -86,6 +86,8 @@ deepchord rag 'rootless ii–V voicings'
 
 The adapter invokes `scripts/rag.py query TEXT --top 3 --kind concept --context` with the current Python interpreter. Other libraries can implement this local interface. Retrieved evidence is sent only to the local model and stored in the private run directory. RAG is retrieval, not weight training.
 
+The [method and verification guide](docs/methodology.md) covers source/page identity, OCR and score inspection, reviewed cards and retrieval checks, composition validation, and Logic handoff evidence. It separates external RAG preparation from features automated by the current CLI.
+
 ## LoRA training and reuse (Apple Silicon)
 
 ```sh
