@@ -1,1 +1,5 @@
 * text=auto
+# Checksummed Logic MCP extension assets must keep exact bytes on every OS (no CRLF conversion).
+src/sovereign_music/assets/logic-region-edit.patch.txt -text
+src/sovereign_music/assets/logic-mcp-LICENSE.txt -text
+src/sovereign_music/assets/logic-extension.toml -text
