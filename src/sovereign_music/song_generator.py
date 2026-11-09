@@ -150,6 +150,18 @@ def compose_block(model, prompt, context, section, track, bars, previous_summary
         "\n\n" + "\n".join(bar_ranges)
     )
 
+    if 'continuity' in context:
+        system_prompt += (
+            "\n\n"
+            "The context.continuity.previous_tail contains actual notes from the prior part of this SAME ORIGINAL track "
+            "and has negative starts relative to this block; these are reference only and must never be output with negative starts. "
+            "melody_motif contains the initial theme of this generated song; creatively vary and recall it when appropriate to role and section. "
+            "current_melody contains notes already generated for this SAME block, and accompaniment should support it without obscuring it. "
+            "Consider section_length_bars and section_offset_bars, using varied density, purposeful rests and clear transitions "
+            "appropriate to the requested style. Do not force every track to play in every block. Original timing bounds still apply. "
+            "Do not copy any external music."
+        )
+
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_content}
@@ -226,6 +238,9 @@ def compose_arrangement(model, prompt, plan, block_fn=None):
         }
         song["tracks"].append(track)
 
+    melody_track = next((t for t in song['tracks'] if t['role'] == 'melody'), None)
+    ordered_tracks = ([melody_track] + [t for t in song['tracks'] if t is not melody_track]) if melody_track is not None else song['tracks']
+
     for section_data in plan["sections"]:
         section = {
             "name": section_data["name"],
@@ -249,7 +264,9 @@ def compose_arrangement(model, prompt, plan, block_fn=None):
         while current_bar < end_bar:
             block_size = min(4, end_bar - current_bar)
 
-            for track in song["tracks"]:
+            track_order = ordered_tracks if plan.get('continuity_context_version') == 1 else song["tracks"]
+
+            for track in track_order:
                 # Calculate progression for this specific block
                 # Derived by cycling section['progression'] starting from position within section
                 relative_pos = current_bar - start_bar
@@ -267,6 +284,11 @@ def compose_arrangement(model, prompt, plan, block_fn=None):
                     'start_bar': current_bar,
                     'section_start_bar': start_bar
                 }
+
+                if plan.get('continuity_context_version') == 1:
+                    context['continuity'] = continuity_context(track, melody_track, (current_bar-1)*4, block_size)
+                    context['section_length_bars'] = end_bar-start_bar
+                    context['section_offset_bars'] = current_bar-start_bar
 
                 track_metadata = {
                     "name": track["name"],
@@ -441,6 +463,7 @@ def prepare_run(prompt, model, resume_dir=None):
             plan = json.loads((run / 'plan.json').read_text(encoding='utf-8'))
         else:
             plan = make_plan(prompt, model)
+            plan['continuity_context_version'] = 1
             for track in plan.get('tracks', []):
                 track.setdefault('pedal_allowed', False)
             validate_plan(plan)
@@ -611,3 +634,76 @@ def review_block_harmony(model, parsed, track, progression):
                 'error': str(e)
             }
         }
+
+
+def continuity_context(track, melody_track, block_start_beat, block_bars):
+    def copy_note(n):
+        return {'pitch': n['pitch'], 'start': n['start'], 'duration': n['duration'], 'velocity': n['velocity']}
+
+    prev_tail = []
+    if 'notes' in track:
+        track_notes = sorted(track['notes'], key=lambda x: x['start'])
+        for n in track_notes:
+            if n['start'] < block_start_beat:
+                prev_tail.append(copy_note({**n, 'start': n['start'] - block_start_beat}))
+        prev_tail = prev_tail[-8:] if len(prev_tail) > 0 else []
+
+    melody_motif = []
+    current_melody = []
+
+    if melody_track is not None:
+        if 'notes' in melody_track:
+            m_notes = sorted(melody_track['notes'], key=lambda x: x['start'])
+
+            # Motif
+            motif_pool = []
+            for n in m_notes:
+                if n['start'] < block_start_beat:
+                    motif_pool.append(copy_note(n))
+
+            motif_pool = motif_pool[:8] if len(motif_pool) > 0 else []
+
+            if motif_pool:
+                min_start = motif_pool[0]['start']
+                melody_motif = [copy_note({**n, 'start': n['start'] - min_start}) for n in motif_pool]
+                if len(melody_motif) > 8:
+                    melody_motif = melody_motif[-8:]
+            else:
+                melody_motif = []
+
+            # Current
+            current_melody = []
+            upper_bound = block_start_beat + 4 * block_bars
+
+            # Group notes by bar
+            bars_notes = {}
+            for n in m_notes:
+                if block_start_beat <= n['start'] < upper_bound:
+                    bar_index = int((n['start'] - block_start_beat) // 4)
+                    if bar_index not in bars_notes:
+                        bars_notes[bar_index] = []
+                    bars_notes[bar_index].append(copy_note({**n, 'start': n['start'] - block_start_beat}))
+
+            # Select up to two notes per bar (earliest and latest)
+            sorted_bar_indices = sorted(bars_notes.keys())
+            for b_idx in sorted_bar_indices:
+                notes_in_bar = bars_notes[b_idx]
+                if len(notes_in_bar) == 1:
+                    current_melody.append(notes_in_bar[0])
+                else:
+                    # Find earliest and latest by start
+                    sorted_bar = sorted(notes_in_bar, key=lambda x: x['start'])
+                    current_melody.append(sorted_bar[0])
+                    current_melody.append(sorted_bar[-1])
+
+            # Limit to 8 notes total
+            current_melody = current_melody[:8]
+
+            if melody_track is track:
+                current_melody = []
+
+    return {
+        'previous_tail': prev_tail,
+        'melody_motif': melody_motif,
+        'current_melody': current_melody
+    }

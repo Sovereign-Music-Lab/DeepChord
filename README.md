@@ -127,7 +127,7 @@ Run this in the **normal terminal**, not at `composer>`. Ollama must be running 
 deepchord song 'A warm melodic pop instrumental with a clear ending' --model gemma4:12b-mlx
 ```
 
-DeepChord plans sections and instruments, then generates each part in smaller blocks. This can take many minutes; repeated invalid notes can stop the run. Copy the `Run directory:` path printed at the start. To resume, replace the path below with that directory and use the **exact same prompt and model**. Previously validated blocks are reused.
+DeepChord plans sections and instruments, then generates each part in smaller blocks. In new runs with a melody part, later blocks can refer to earlier notes and accompanying parts can refer to the current melody. This can take many minutes; repeated invalid notes can stop the run. Copy the `Run directory:` path printed at the start. To resume, replace the path below with that directory and use the **exact same prompt and model**. Previously validated blocks are reused.
 
 ```sh
 deepchord song 'A warm melodic pop instrumental with a clear ending' --model gemma4:12b-mlx --resume '/path/to/Run directory'

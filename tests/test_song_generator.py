@@ -1,6 +1,7 @@
 import unittest
 from tempfile import TemporaryDirectory
 from pathlib import Path
+from copy import deepcopy
 from unittest.mock import patch
 import sovereign_music.song_generator as sg
 
@@ -75,3 +76,52 @@ class TestSongGenerator(unittest.TestCase):
             result = sg.review_block_harmony('m', original, track, progression)
             self.assertEqual(result['harmony_review']['status'], 'review_failed')
             self.assertEqual(original['notes'][0]['pitch'], 61)
+
+    def test_continuity_context(self):
+        notes = [{'pitch':60+i,'start':i,'duration':1,'velocity':80} for i in range(12)]
+        melody = {'notes':notes}
+        reference = sg.continuity_context(melody, melody, 12, 4)
+        self.assertEqual([n['pitch'] for n in reference['melody_motif']], list(range(60,68)))
+        self.assertEqual([n['start'] for n in reference['previous_tail']], list(range(-8,0)))
+        self.assertEqual(reference['current_melody'], [])
+        reference['previous_tail'][0]['pitch'] = 0
+        self.assertEqual(notes[4]['pitch'], 64)
+
+    def test_continuity_and_legacy_resume(self):
+        plan = deepcopy(self.PLAN)
+        plan['continuity_context_version'] = 1
+        plan['tracks'] = [{'name':'Bass','role':'bass','channel':1,'program':32,'pedal_allowed':False}, {'name':'Lead','role':'melody','channel':0,'program':0,'pedal_allowed':False}]
+        records = []
+        def fake(model,prompt,context,section,track,bars,summary):
+            records.append((track['role'],context))
+            return {'notes':[{'pitch':60 if track['role']=='melody' else 36,'start':0,'duration':1,'velocity':80}],'summary':'same'}
+        song = sg.compose_arrangement('m','p',plan,block_fn=fake)
+        self.assertEqual([r[0] for r in records[:2]], ['melody','bass'])
+        self.assertEqual([t['name'] for t in song['tracks']], ['Bass','Lead'])
+        self.assertEqual(records[1][1]['continuity']['current_melody'][0]['pitch'], 60)
+        self.assertEqual(records[0][1]['continuity']['current_melody'], [])
+        self.assertEqual(records[2][1]['continuity']['previous_tail'][0]['start'], -16)
+        self.assertEqual(records[2][1]['continuity']['melody_motif'][0]['pitch'], 60)
+        self.assertEqual(records[2][1]['section_offset_bars'], 4)
+        del plan['continuity_context_version']
+        records.clear()
+        sg.compose_arrangement('m','p',plan,block_fn=fake)
+        self.assertEqual(records[0][0], 'bass')
+        self.assertNotIn('continuity', records[0][1])
+
+    def test_new_and_existing_plan_versions(self):
+        with TemporaryDirectory() as folder:
+            with patch.object(sg.core, 'ORG', Path(folder)), patch.object(sg, 'make_plan', return_value=deepcopy(self.PLAN)):
+                run, new_plan = sg.prepare_run('request', 'model')
+                self.assertEqual(new_plan['continuity_context_version'], 1)
+                self.assertEqual(sg.prepare_run('request', 'model', run)[1]['continuity_context_version'], 1)
+                old_run = Path(folder) / 'old'
+                old_run.mkdir()
+                sg.core.dump(old_run / 'request.json', {'prompt':'request','model':'model'})
+                sg.core.dump(old_run / 'plan.json', deepcopy(self.PLAN))
+                self.assertNotIn('continuity_context_version', sg.prepare_run('request', 'model', old_run)[1])
+
+    def test_current_melody_covers_all_bars(self):
+        melody = {'notes':[{'pitch':60,'start':i,'duration':0.5,'velocity':80} for i in range(16)]}
+        context = sg.continuity_context({'notes':[]}, melody, 0, 4)
+        self.assertEqual([n['start'] for n in context['current_melody']], [0,3,4,7,8,11,12,15])
