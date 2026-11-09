@@ -62,3 +62,5 @@ Read AGENTS.md, this file, Git status, then one task. Update this English file a
 - 2026-11-10: user selected local Gemma 4 12B for this coding task. Retry hints now identify invalid accompaniment pitches and missing chord tones, include form boundaries, and allow two retries without weakening validation. One isolated 4-bar real-model run succeeded on attempt 2 (28 notes, no harmony warnings); earlier run still failed after three attempts. SovaFlow bundled environment configuration fix shipped separately. Listening and Logic import not verified.
 
 - 2026-11-10: expanded the bilingual landing page with dedicated SovaRoll and SovaFlow sections after the maintainer noted its DeepChord emphasis.
+
+- 2026-11-10: removed duplicate DeepChord introduction from both site locales; existing project navigation now points to the overview card.
