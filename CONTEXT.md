@@ -66,3 +66,5 @@ Read AGENTS.md, this file, Git status, then one task. Update this English file a
 - 2026-11-10: removed duplicate DeepChord introduction from both site locales; existing project navigation now points to the overview card.
 
 - 2026-11-10: Bilingual README now explains composer versus shell, sketch length, and the first Logic handoff.
+
+- 2026-11-10: Experimental `deepchord song` creates resumable local multitrack MIDI. A real `gemma4:12b-mlx` trial generated 48 bars, 5 tracks and 966 notes; independent SMF reading verified markers and note-offs. The CLI reassembled actual generated blocks and exported the MIDI. Limited downbeat chord-tone review reduced flags 85→24; 3 block reviews failed and were retained with warnings. No listening or live Logic import verification, no claim that musical quality meets the user's reference or is guaranteed. The trial remains in the private local workspace; do not publish generated music or user references. 12B may require multiple retries; cache is local and partial runs can be resumed. Original 249-file MIDI census and aggregate statistics stay outside the public repository.

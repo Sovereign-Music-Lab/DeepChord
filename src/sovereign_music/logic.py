@@ -8,7 +8,8 @@ import subprocess
 import sys
 import time
 from .mcp import Client
-from .core import dump,validate,write_midi
+from .core import dump
+from .song_io import validate_song as validate, write_song as write_midi
 
 
 def inspect(config):
@@ -96,6 +97,6 @@ def open_run(run,config=None):
                 # Visible AX evidence cannot prove full MIDI content/controller equivalence.
                 report['status']='open_requested_with_observation'
         except (OSError,RuntimeError,TimeoutError) as e:report['observation_error']=str(e)
-    report['next_step']='If Logic shows a setup/tempo dialog, resolve it; choose a native piano and check playback. Request acceptance is not verified import.'
+    report['next_step']='If Logic shows a setup/tempo dialog, resolve it; assign suitable instruments and check playback. Request acceptance is not verified import.'
     dump(run/'logic-handoff.json',report)
     return report

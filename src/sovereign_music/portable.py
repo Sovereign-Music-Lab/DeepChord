@@ -3,7 +3,7 @@
 """Portable MIDI export; native Logic remains a macOS capability."""
 import json
 from pathlib import Path
-from .core import validate,write_midi
+from .song_io import validate_song as validate, write_song as write_midi
 
 def export_run(run,out):
     run=Path(run).resolve();out=Path(out).resolve()

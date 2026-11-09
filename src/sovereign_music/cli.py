@@ -22,6 +22,10 @@ def parser():
     se.add_argument('--logic-project',type=Path,help='On exit, save the latest successful new version as a new Logic project (requires --mcp-config)')
     de=sub.add_parser('export');de.add_argument('run',type=Path);de.add_argument('--out',type=Path,required=True)
     c=sub.add_parser('compose');c.add_argument('prompt');c.add_argument('--bars',type=int,choices=range(1,17),default=8);c.add_argument('--model',default=core.MODEL);c.add_argument('--adapter',type=Path);c.add_argument('--previous-run',type=Path);c.add_argument('--theory-model',type=Path);c.add_argument('--theory-adapter',type=Path);c.add_argument('--logic',action='store_true');c.add_argument('--mcp-config',type=Path)
+    song=sub.add_parser('song',help='Experimental multitrack song generation')
+    song.add_argument('prompt')
+    song.add_argument('--model',default=core.MODEL)
+    song.add_argument('--resume',type=Path)
     d=sub.add_parser('demo');d.add_argument('--out',type=Path,required=True)
     v=sub.add_parser('validate');v.add_argument('file',type=Path)
     f=sub.add_parser('feedback');f.add_argument('run',type=Path);f.add_argument('--rating',type=int,choices=range(1,6),required=True);f.add_argument('--note',required=True)
@@ -71,6 +75,9 @@ def execute(a):
     if a.cmd=='export':
         from .portable import export_run
         return export_run(a.run,a.out)
+    if a.cmd=='song':
+        from .song_generator import run_song
+        return str(run_song(a.prompt,a.model,a.resume))
     if a.cmd=='compose':
         run=core.compose(a)
         if a.logic:
@@ -79,9 +86,14 @@ def execute(a):
         return str(run)
     if a.cmd=='demo':return demo(a.out)
     if a.cmd=='validate':
-        song=json.loads(a.file.read_text(encoding='utf-8'));return {**core.validate(song),'harmony_warnings':core.harmony_check(song)}
+        song=json.loads(a.file.read_text(encoding='utf-8'))
+        if 'sections' in song:
+            from .arrangement import validate_arrangement
+            return {**validate_arrangement(song),'harmony_warnings':['Harmony and musical quality were not assessed']}
+        return {**core.validate(song),'harmony_warnings':core.harmony_check(song)}
     if a.cmd=='feedback':
-        source=a.run/'composition.json';core.validate(json.loads(source.read_text(encoding='utf-8')))
+        from .song_io import validate_song
+        source=a.run/'composition.json';validate_song(json.loads(source.read_text(encoding='utf-8')))
         row={'timestamp':dt.datetime.now().astimezone().isoformat(),'composition_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'rating':a.rating,'note':a.note}
         with (a.run/'feedback.jsonl').open('a') as f:f.write(json.dumps(row,ensure_ascii=False)+'\n')
         return 'Feedback saved; no weights changed.'

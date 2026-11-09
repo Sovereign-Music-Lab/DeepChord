@@ -38,7 +38,7 @@ flowchart LR
     P --> H
 ```
 
-Each new request revises the last successful version. Resume by session name after `/quit`; failures preserve earlier versions. Generation currently covers 1–16-bar piano sketches, not unattended finished orchestration, sound design, mixing, or complete Logic editing.
+Each new request revises the last successful version. Resume by session name after `/quit`; failures preserve earlier versions. Interactive sessions generate 1–16-bar piano sketches; a separate experimental command generates longer multitrack MIDI. Finished sound design, mixing, and complete Logic editing still require human work.
 
 ## Public foundations
 
@@ -95,7 +95,7 @@ During a session, `/explain` shows the explanation, `/status` shows progress, `/
 
 **First-time tip:** At `composer>`, enter a music request or a session command such as `/open`. Shell commands such as `ollama list` and `deepchord session ...` belong in the normal terminal; enter `/quit` first. `YOUR_INSTALLED_LOCAL_MODEL` is a placeholder, not a model name; check installed names with `ollama list`.
 
-In the example, `--bars 4` means four bars. The current program generates a **1–16 bar piano sketch** per request, mainly melody and accompaniment. It does not automatically produce a complete arranged and mixed song. You can restart a session with `--bars 16` in the normal terminal, but longer generations may fail validation.
+In the example, `--bars 4` means four bars. The interactive session generates a **1–16 bar piano sketch** per request, mainly melody and accompaniment. It does not automatically produce a complete arranged and mixed song. You can restart a session with `--bars 16` in the normal terminal, but longer generations may fail validation.
 
 **Open and hear the result in Logic Pro (Mac):**
 
@@ -118,6 +118,24 @@ deepchord compose 'Leave more space in the accompaniment' --bars 4 --previous-ru
 Each result includes an editable MIDI file (`composition.mid`), an explanation (`EXPLANATION.md`), source data and validation results. Open the MIDI in Logic or another DAW to edit its notes. The explanation distinguishes the chords used from theory retrieved as reference.
 
 Results are saved under `.local/share/sovereign-music/` in your home folder by default. If the output fails validation, DeepChord tries up to two repairs; if it still fails, earlier successful results remain available and you can make another request. On a Mac, `Start.command` also starts a session.
+
+### Create a longer multitrack MIDI song (experimental)
+
+Run this in the **normal terminal**, not at `composer>`. Ollama must be running and the specified local model must appear in `ollama list`.
+
+```sh
+deepchord song 'A warm melodic pop instrumental with a clear ending' --model gemma4:12b-mlx
+```
+
+DeepChord plans sections and instruments, then generates each part in smaller blocks. This can take many minutes; repeated invalid notes can stop the run. Copy the `Run directory:` path printed at the start. To resume, replace the path below with that directory and use the **exact same prompt and model**. Previously validated blocks are reused.
+
+```sh
+deepchord song 'A warm melodic pop instrumental with a clear ending' --model gemma4:12b-mlx --resume '/path/to/Run directory'
+```
+
+On success, `composition.mid` in that directory is editable multitrack MIDI. In Logic Pro, use **File → Import → MIDI File** or import the file into an empty project; check the instrument on each track and play it. `composition.json`, `plan.json`, `validation.json` and `blocks/` retain the plan, notes and validated blocks. When same-pitch overlaps are shortened or pitches are revised during chord review, the block retains the original notes and change record. Check `validation.json` for remaining downbeat chord-tone flags and failed reviews; non-chord tones can be intentional.
+
+This feature is experimental. It checks MIDI note timing and tracks; it does not assess harmony, arrangement quality or sound. Instrument patches, mixing and mastering are not included, and length and quality may vary. This command is separate from the interactive session and optional private RAG/LoRA review.
 
 ## Logic Pro + MCP — Mac
 
