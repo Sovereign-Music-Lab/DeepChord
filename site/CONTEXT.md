@@ -23,7 +23,7 @@ Updated: 2026-11-10. This site is maintained from the site/ subtree of DeepChord
 - Current capability and future architecture are separate. Preserve editable sources and actual evidence.
 
 ## Current state and next action
-- Bilingual landing page introduces all three projects with first-run steps. On 2026-11-10 fresh macOS ZIP/Git trials found SovaRoll starts empty and SovaFlow synthetic iteration keeps fixed MIDI; copy now explains both and built-in adapter configuration precedence.
+- Bilingual landing page introduces all three projects with first-run steps. On 2026-11-10 fresh macOS ZIP/Git trials found SovaRoll starts empty and SovaFlow synthetic iteration keeps fixed MIDI; copy now explains both and adapter configuration precedence. SovaFlow bundled jobs now honor environment overrides.
 - Read both README languages and the paired HTML pages before changing content.
 - Keep credits, locale parity, canonical/hreflang, favicon/OG assets and link destinations consistent.
 - Product links connect the organization, DeepChord, SovaRoll and SovaFlow; integrations retain their documented limits.

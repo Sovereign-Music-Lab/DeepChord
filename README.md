@@ -103,7 +103,7 @@ deepchord compose 'Leave more space in the accompaniment' --bars 4 --previous-ru
 
 Each result includes an editable MIDI file (`composition.mid`), an explanation (`EXPLANATION.md`), source data and validation results. Open the MIDI in Logic or another DAW to edit its notes. The explanation distinguishes the chords used from theory retrieved as reference.
 
-Results are saved under `.local/share/sovereign-music/` in your home folder by default. If the output fails validation, DeepChord tries to repair it once; if it still fails, earlier successful results remain available and you can make another request. On a Mac, `Start.command` also starts a session.
+Results are saved under `.local/share/sovereign-music/` in your home folder by default. If the output fails validation, DeepChord tries up to two repairs; if it still fails, earlier successful results remain available and you can make another request. On a Mac, `Start.command` also starts a session.
 
 ## Logic Pro + MCP — Mac
 

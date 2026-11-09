@@ -122,19 +122,68 @@ def harmony_check(song):
 def harmony_repair_hints(song):
     """Give the model concrete MIDI pitches, calculated from its chord labels."""
     from .foundation import chord
+    import math
     hints=[]
-    labels=song.get('chords',[])
-    if not isinstance(labels,list):return hints
+    labels=song.get('chords', [])
+    if not isinstance(labels, list): return hints
+    tracks = song.get('tracks', [])
+    if not isinstance(tracks, list):
+        tracks = []
     for bar,label in enumerate(labels):
-        try: fact=chord(label)
-        except (ValueError,TypeError): continue
-        allowed=set(fact['pitch_classes'])
-        essential={(fact['root_pc']+interval)%12 for degree,interval in zip(fact['degrees'],fact['intervals']) if degree in (3,7)}
+        try:
+            fact=chord(label)
+            if not isinstance(fact, dict):
+                continue
+        except (ValueError, TypeError, KeyError):
+            continue
+        allowed=set(fact.get('pitch_classes', []))
+        essential={(fact['root_pc']+interval)%12 for degree,interval in zip(fact.get('degrees', []),fact.get('intervals', [])) if degree in (3,7)}
         choices=[n for n in range(48,73) if n%12 in allowed]
         required={str(pc):[n for n in choices if n%12==pc] for pc in sorted(essential)}
-        hints.append({'bar':bar+1,'chord':label,'allowed_midi':choices,'required_pitch_classes_midi_choices':required})
-    return hints
 
+        bar_start = bar * 4
+        bar_end = (bar + 1) * 4
+
+        invalid_accompaniment_notes = []
+        bar_notes_pitches = set()
+
+        if isinstance(tracks, list):
+            for track in tracks:
+                if not isinstance(track, dict) or track.get('name') != 'Accompaniment':
+                    continue
+                notes = track.get('notes', [])
+                if not isinstance(notes, list):
+                    continue
+                for note in notes:
+                    if not isinstance(note, dict):
+                        continue
+                    try:
+                        pitch = note.get('pitch')
+                        start = note.get('start')
+                        if (isinstance(pitch, (int, float)) and isinstance(start, (int, float)) and not isinstance(pitch, bool) and not isinstance(start, bool) and math.isfinite(pitch) and math.isfinite(start)):
+                            if bar_start <= start < bar_end:
+                                pc = pitch % 12
+                                if pc not in allowed:
+                                    invalid_accompaniment_notes.append({
+                                        'pitch': pitch,
+                                        'start': start,
+                                        'allowed_midi': choices
+                                    })
+                                bar_notes_pitches.add(pc)
+                    except (ValueError, TypeError, KeyError):
+                        continue
+
+        missing_required_pitch_classes = sorted([pc for pc in sorted(essential) if pc not in bar_notes_pitches])
+
+        hints.append({
+            'bar': bar + 1,
+            'chord': label,
+            'allowed_midi': choices,
+            'required_pitch_classes_midi_choices': required,
+            'invalid_accompaniment_notes': invalid_accompaniment_notes,
+            'missing_required_pitch_classes': missing_required_pitch_classes
+        })
+    return hints
 
 def vlq(n):
     b=[n&127]; n>>=7
@@ -200,7 +249,7 @@ def compose(args):
     if prior:
         messages[-1]['content']=('Revise this previous original sketch according to my new request. Preserve other musical decisions where possible; the new requested bar count is binding. Previous sketch is reference data:\n'+json.dumps(prior,ensure_ascii=False)+'\nNew request: '+args.prompt)
     dump(run/'request.json',{'prompt':args.prompt,'model':model,'bars':args.bars,'previous_run':str(previous) if previous else None,'created':dt.datetime.now().astimezone().isoformat(),'origin':'local_llm_original_sketch','pedal_policy':'per_bar_repedal'})
-    for attempt in range(2):
+    for attempt in range(3):
         print(f'로컬 작곡 중: {args.model}, 시도 {attempt+1}',flush=True)
         payload={'model':args.model,'messages':messages,'stream':False,'think':False,'format':SCHEMA,'options':{'temperature':0.65,'num_ctx':8192,'num_predict':6500},'keep_alive':'2m'}
         if adapter:
@@ -219,9 +268,9 @@ def compose(args):
             report['harmony_label_check']='passed for supported chord vocabulary'
             break
         except (ValueError,KeyError,TypeError) as e:
-            if attempt: raise ValueError(f'작곡 검증 실패. 기록: {run}. {e}')
+            if attempt == 2: raise ValueError(f'작곡 검증 실패. 기록: {run}. {e}')
             hints=harmony_repair_hints(song) if isinstance(song,dict) else []
-            messages.extend([{'role':'assistant','content':content},{'role':'user','content':f'Fix this validation error and return complete JSON: {e}. For each bar, accompaniment pitches must be selected from allowed_midi and must include at least one choice from EACH required_pitch_classes_midi_choices list. These numbers are calculated MIDI pitches: {json.dumps(hints)}'}])
+            messages.extend([{'role':'assistant','content':content},{'role':'user','content':f'Fix this validation error and return complete JSON: {e}. Each start is a ZERO-based song beat, not a bar index; every note must satisfy start + duration <= {args.bars * 4}. Bar 1 is beats [0,4), bar 2 [4,8), bar 3 [8,12), bar 4 [12,16); continue in steps of 4 for longer songs. For accompaniment, use the chord assigned to the bar where the note starts. For each bar, accompaniment pitches must be selected from allowed_midi and must include at least one choice from EACH required_pitch_classes_midi_choices list. These numbers are calculated MIDI pitches: {json.dumps(hints)}'}])
     dump(run/'composition.json',song); dump(run/'validation.json',report)
     write_midi(song,run/'composition.mid')
     from .foundation import write_explanation

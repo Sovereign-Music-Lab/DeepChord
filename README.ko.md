@@ -103,7 +103,7 @@ deepchord compose '반주를 더 비워줘' --bars 4 --previous-run /path/to/run
 
 결과마다 편집 가능한 MIDI 파일(`composition.mid`)과 곡 설명(`EXPLANATION.md`), 원본 데이터와 검사 결과가 저장됩니다. MIDI를 Logic 등에서 열어 음표를 직접 수정할 수 있습니다. 설명에는 사용한 코드와 참고용으로 검색한 이론을 구분해 적습니다.
 
-결과는 기본적으로 홈 폴더의 `.local/share/sovereign-music/`에 저장됩니다. 생성 결과가 검사에 실패하면 한 번 다시 시도합니다. 그래도 실패하면 이전에 성공한 결과는 보존하고 다음 요청을 받습니다. Mac에서는 `Start.command`로도 대화를 시작할 수 있습니다.
+결과는 기본적으로 홈 폴더의 `.local/share/sovereign-music/`에 저장됩니다. 생성 결과가 검사에 실패하면 최대 두 번 다시 시도합니다. 그래도 실패하면 이전에 성공한 결과는 보존하고 다음 요청을 받습니다. Mac에서는 `Start.command`로도 대화를 시작할 수 있습니다.
 
 ## Logic Pro + MCP — Mac
 
