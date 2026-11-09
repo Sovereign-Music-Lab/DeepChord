@@ -82,3 +82,7 @@ html[lang=en] .hero-desc strong{margin-left:0}
 .human-loop b{font-size:13px;font-weight:600;color:var(--green)}
 .human-loop span{font-size:13px;line-height:1.7}
 @media(max-width:700px){.foundation-section{padding-top:38px;padding-bottom:38px}.foundation-grid{grid-template-columns:minmax(0,1fr);gap:28px}.foundation-grid .lead{font-size:25px}}
+
+/* Make links in the first-run instructions easy to identify. */
+#quick-start a,.getting-started .chapter-grid a{text-decoration:underline;text-underline-offset:3px;color:var(--green)}
+#quick-start code{overflow-wrap:anywhere}
