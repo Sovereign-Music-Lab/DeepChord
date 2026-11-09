@@ -77,16 +77,21 @@ py -3 -m venv .venv
 .venv\Scripts\deepchord.exe session --name my-song --model YOUR_INSTALLED_LOCAL_MODEL
 ```
 
-`demo` is a fixed installation fixture, not AI composition. Install/run [Ollama](https://ollama.com/) separately and inspect `ollama list`. The development Mac's default tag is `gemma4:12b-mlx`; that tag is not guaranteed on other operating systems. Supply an installed local model with `--model`. Cloud models are refused and models are not automatically downloaded.
+`demo` creates a fixed example to check the installation; it is not an AI-composed piece.
+
+For AI composition, install and run [Ollama](https://ollama.com/) and install a model separately. Type `ollama list` in the terminal to see installed models. If `gemma4:12b-mlx` is not listed, replace it in the examples with the name of an installed local model. Availability depends on your computer and operating system. DeepChord does not download models or switch to cloud models automatically.
 
 ## Compose and keep revising
 
+Enter this command to start a conversation for a four-bar piece. You can replace `my-song` with another English name to identify your piece.
+
 ```sh
 deepchord session --name my-song --model gemma4:12b-mlx --bars 4
-# First request: Make a warm C-major piano riff.
-# Next request: Keep the melody and leave more space in the accompaniment.
-# /explain /status /new /open /quit
 ```
+
+When `composer>` appears, describe the music you want, such as “Make a warm C-major piano melody.” Once the result appears, you can continue with “Keep the melody and leave more space in the accompaniment.” Earlier versions are kept. Enter `/quit` to finish; start again with the same name to resume.
+
+During a session, `/explain` shows the explanation, `/status` shows progress, `/new` starts a new piece, and `/open` requests that Logic open the latest result.
 
 For a non-interactive list, repeat `--request 'first request' --request 'revision'`. For one composition:
 
@@ -96,9 +101,9 @@ deepchord compose 'A warm C-major piano sketch, ending on Cmaj7' --bars 4 --mode
 deepchord compose 'Leave more space in the accompaniment' --bars 4 --previous-run /path/to/run --model gemma4:12b-mlx
 ```
 
-Every result preserves `composition.json`, editable `composition.mid`, `validation.json`, `EXPLANATION.md`, and `explanation.json`. Explanations distinguish chords and tones per bar, ii–V–I patterns detected in chord labels, and retrieved theory candidates. Retrieval is not proof of application. Recalculate after JSON edits with `deepchord explain RUN`.
+Each result includes an editable MIDI file (`composition.mid`), an explanation (`EXPLANATION.md`), source data and validation results. Open the MIDI in Logic or another DAW to edit its notes. The explanation distinguishes the chords used from theory retrieved as reference.
 
-Runs default to `~/.local/share/sovereign-music/`; override with `SOVEREIGN_MUSIC_HOME`. Reusing a session name resumes it. Invalid model output gets one repair attempt, then records failure while allowing the next request. `Start.command` also opens a persistent session.
+Results are saved under `.local/share/sovereign-music/` in your home folder by default. If the output fails validation, DeepChord tries to repair it once; if it still fails, earlier successful results remain available and you can make another request. On a Mac, `Start.command` also starts a session.
 
 ## Logic Pro + MCP — Mac
 
@@ -108,9 +113,51 @@ deepchord session --name my-song --model gemma4:12b-mlx --logic \
 deepchord logic open /path/to/run --mcp-config /path/to/private/logic.toml
 ```
 
-The full MIDI preserves tempo, notes, and CC64 when requesting Logic to open it. Optional MCP reads session and region state. Save current work and resolve dialogs, instruments, playback, and project saving in Logic. The CLI's MCP integration is currently read-only; it does not complete automatic instrument selection, plug-in mixing, or project saving. `logic-handoff.json` separates request acceptance from verified import or audio. See [Logic integration](docs/logic.md).
+The `--logic` and `logic open` commands request a MIDI import and optionally observe its state; acceptance does not prove import or sound. The separate `--logic-project` route below also attempts to save a new project. Check instruments, playback, and mix yourself. See [Logic integration](docs/logic.md).
 
 Logic runs on a Mac. On Linux/Windows, use `deepchord export RUN --out /path/to/new.mid` for another DAW, or transfer the file to a Mac. MIDI edits do not automatically update existing audio renders or edits made inside Logic.
+
+### Save a new Logic project after a session
+
+On a Mac, configure Logic Pro MCP, then save and close any current Logic project. Replace the example paths with your configuration and a new, non-existing `.logicx` destination.
+
+```sh
+deepchord session --name my-song --bars 4 --model gemma4:12b-mlx \
+  --mcp-config /path/to/logic.toml --logic-project /path/to/my-song.logicx
+```
+
+After composing and revising, enter `/quit`. The last successful version is opened in Logic and saved as a new project; Logic is launched if necessary. Saving stops if the final request fails or the Logic project chooser cannot be confirmed. Note-by-note import, sound and musical quality are not automatically verified: check them in Logic. Earlier versions and editable MIDI are preserved. This creates a new project from a new MIDI version; it does not edit an existing Logic project in place.
+
+### Change the tempo of an existing Logic project
+
+First open the existing project in Logic, and replace the example paths with your project and a new destination. Currently this supports **explicit numeric tempo changes only**. Gemma interprets the request; DeepChord saves a new copy, changes the tempo, verifies it, and saves. The source file is not overwritten.
+
+```sh
+deepchord logic edit /path/to/song.logicx 'set tempo to 92 BPM' \
+  --out /path/to/song-92.logicx --mcp-config /path/to/logic.toml
+```
+
+The workflow stops if the target is not open or a save or edit cannot be verified. Do not operate Logic during the workflow. A failed attempt can leave a copy or save dialog; inspect its state before trying again. General note, region, instrument, and mix editing is not yet supported.
+
+### Change a note or move a region in an existing song
+
+`logic edit-note` copies a saved song and lets Gemma change **the pitch of one existing note**. It preserves the source, compares the complete observed event list including pedal events, saves, and loads a separate copy of the saved bytes to check persistence. You do not need to run Codex.
+
+```sh
+deepchord logic edit-note "$HOME/Music/song.logicx" 'Raise the first note in Piano by a whole tone' \
+  --out "$HOME/Music/song-edited.logicx" --model gemma4:12b-mlx \
+  --mcp-config /path/to/logic.toml
+```
+
+Use `logic move-region` to move an entire region to another bar. Notes and pedal events move together, keeping the region length and track.
+
+```sh
+deepchord logic move-region "$HOME/Music/song.logicx" 'Move Piano to the start of bar 5' \
+  --out "$HOME/Music/song-moved.logicx" --model gemma4:12b-mlx \
+  --mcp-config /path/to/logic.toml
+```
+
+First follow [setup and existing-song editing](docs/logic.md#editing-a-note-in-an-existing-song) to install the MCP extension. Each request currently changes one note pitch or one region's whole-bar position. Multi-note edits, resizing and duplicate region names are not supported yet. Leave Logic untouched during the operation.
 
 ## LoRA and theory review
 

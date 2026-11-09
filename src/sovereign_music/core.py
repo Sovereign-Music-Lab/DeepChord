@@ -119,6 +119,23 @@ def harmony_check(song):
     return warnings
 
 
+def harmony_repair_hints(song):
+    """Give the model concrete MIDI pitches, calculated from its chord labels."""
+    from .foundation import chord
+    hints=[]
+    labels=song.get('chords',[])
+    if not isinstance(labels,list):return hints
+    for bar,label in enumerate(labels):
+        try: fact=chord(label)
+        except (ValueError,TypeError): continue
+        allowed=set(fact['pitch_classes'])
+        essential={(fact['root_pc']+interval)%12 for degree,interval in zip(fact['degrees'],fact['intervals']) if degree in (3,7)}
+        choices=[n for n in range(48,73) if n%12 in allowed]
+        required={str(pc):[n for n in choices if n%12==pc] for pc in sorted(essential)}
+        hints.append({'bar':bar+1,'chord':label,'allowed_midi':choices,'required_pitch_classes_midi_choices':required})
+    return hints
+
+
 def vlq(n):
     b=[n&127]; n>>=7
     while n:
@@ -193,6 +210,7 @@ def compose(args):
             response=api('/api/chat',payload,timeout=600)
         dump(run/f'response-{attempt+1}.json',response)
         content=response.get('message',{}).get('content','')
+        song=None
         try:
             if response.get('done_reason')=='length': raise ValueError('Generation truncated')
             song=json.loads(content); report=validate(song,args.bars)
@@ -202,7 +220,8 @@ def compose(args):
             break
         except (ValueError,KeyError,TypeError) as e:
             if attempt: raise ValueError(f'작곡 검증 실패. 기록: {run}. {e}')
-            messages.extend([{'role':'assistant','content':content},{'role':'user','content':f'Fix this validation error and return complete JSON: {e}'}])
+            hints=harmony_repair_hints(song) if isinstance(song,dict) else []
+            messages.extend([{'role':'assistant','content':content},{'role':'user','content':f'Fix this validation error and return complete JSON: {e}. For each bar, accompaniment pitches must be selected from allowed_midi and must include at least one choice from EACH required_pitch_classes_midi_choices list. These numbers are calculated MIDI pitches: {json.dumps(hints)}'}])
     dump(run/'composition.json',song); dump(run/'validation.json',report)
     write_midi(song,run/'composition.mid')
     from .foundation import write_explanation

@@ -9,6 +9,18 @@ import subprocess
 import threading
 import time
 import tomllib
+from . import __version__
+
+
+class ToolError(RuntimeError):
+    """Keep full tool evidence without flooding the musician's terminal."""
+    def __init__(self, name, command, response):
+        self.response = response
+        detail = response.get('structuredContent', {})
+        if not isinstance(detail, dict): detail = {}
+        reason = next((detail[k] for k in ('reason','error','message','hint')
+                       if isinstance(detail.get(k),str) and detail[k].strip()), 'tool reported failure')
+        super().__init__(f'{name}.{command}: {reason[:240]}')
 
 class Client:
     def __init__(self,config):
@@ -19,7 +31,7 @@ class Client:
         self.q=queue.Queue();self.seq=0
         threading.Thread(target=self._read,daemon=True).start()
         try:
-            self.server=self.request('initialize',{'protocolVersion':'2025-03-26','capabilities':{},'clientInfo':{'name':'sovereign-music','version':'0.2.0'}})
+            self.server=self.request('initialize',{'protocolVersion':'2025-03-26','capabilities':{},'clientInfo':{'name':'deepchord','version':__version__}})
             if self.server.get('protocolVersion') not in ('2024-11-05','2025-03-26','2025-06-18'):raise RuntimeError('Unsupported MCP protocol')
             self.send({'method':'notifications/initialized'})
         except BaseException:self.close();raise
@@ -43,9 +55,9 @@ class Client:
                 if 'error' in r:raise RuntimeError(r['error'])
                 return r.get('result',{})
             if 'id' in r and 'method' in r:self.send({'id':r['id'],'error':{'code':-32601,'message':'Not supported'}})
-    def tool(self,name,command,params=None):
-        result=self.request('tools/call',{'name':name,'arguments':{'command':command,'params':params or {}}},timeout=90)
-        if result.get('isError'):raise RuntimeError(json.dumps(result,ensure_ascii=False))
+    def tool(self,name,command,params=None,*,timeout=90):
+        result=self.request('tools/call',{'name':name,'arguments':{'command':command,'params':params or {}}},timeout=timeout)
+        if result.get('isError'):raise ToolError(name,command,result)
         return result
     def close(self):
         if self.p.stdin and not self.p.stdin.closed:self.p.stdin.close()

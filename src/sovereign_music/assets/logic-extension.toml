@@ -1,0 +1,4 @@
+upstream = "https://github.com/MongLong0214/logic-pro-mcp.git"
+revision = "9ea55d7c020df4efca1d95c7b4f4a8c3be0c709b"
+patch_sha256 = "2eb6d4a91f1db42ebaf42710b3c85c2e469159710a1ff14da9d06dd10ab61211"
+license = "MIT"

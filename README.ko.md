@@ -77,16 +77,21 @@ py -3 -m venv .venv
 .venv\Scripts\deepchord.exe session --name my-song --model YOUR_INSTALLED_LOCAL_MODEL
 ```
 
-`demo`는 고정 패턴의 설치 검사이며 AI 작곡이 아닙니다. [Ollama](https://ollama.com/)는 별도 설치·실행하고 `ollama list`에서 로컬 모델을 확인하세요. 개발 Mac의 기본 태그는 `gemma4:12b-mlx`입니다. 다른 운영체제에서 이 태그의 가용성을 보장하지 않으며 `--model`로 설치 모델을 지정합니다. 클라우드 모델은 거부하며 모델을 자동 다운로드하지 않습니다.
+`demo`는 설치가 잘 되었는지 확인하는 예제 곡입니다. AI가 새로 작곡한 곡은 아닙니다.
+
+AI로 작곡하려면 [Ollama](https://ollama.com/)를 따로 설치하고 실행한 뒤, 사용할 모델도 설치해야 합니다. 터미널에서 `ollama list`를 입력하면 설치된 모델 이름을 볼 수 있습니다. 아래 예시의 `gemma4:12b-mlx`가 목록에 없다면 그 자리에 설치된 로컬 모델의 이름을 넣으세요. 컴퓨터와 운영체제에 따라 사용할 수 있는 모델은 다릅니다. DeepChord는 모델을 자동으로 다운로드하거나 클라우드 모델로 바꾸지 않습니다.
 
 ## 작곡하고 계속 수정
 
+터미널에 아래 명령을 입력하면 네 마디짜리 곡을 함께 만드는 대화가 시작됩니다. `my-song`은 곡을 구분하기 위한 이름이므로 원하는 영문 이름으로 바꿔도 됩니다.
+
 ```sh
 deepchord session --name my-song --model gemma4:12b-mlx --bars 4
-# 입력 예: 따뜻한 C장조 피아노 리프를 만들어줘
-# 다음 입력 예: 선율은 유지하고 반주를 더 비워줘
-# /explain /status /new /open /quit
 ```
+
+`composer>`가 나타나면 원하는 음악을 말하듯 입력하세요. 예를 들어 “따뜻한 C장조 피아노 선율을 만들어줘”라고 입력하고, 결과가 나온 뒤 “선율은 유지하고 반주는 더 비워줘”라고 이어서 수정할 수 있습니다. 이전 버전도 남습니다. 끝내려면 `/quit`을 입력하세요. 나중에 같은 이름으로 다시 시작하면 이어서 작업할 수 있습니다.
+
+대화 중 `/explain`은 곡 설명, `/status`는 작업 상태, `/new`는 새 곡 시작, `/open`은 최근 결과를 Logic으로 열기 요청입니다.
 
 비대화형으로는 `--request '첫 주문' --request '수정 주문'`을 사용합니다. 한 번만 생성하려면:
 
@@ -96,9 +101,9 @@ deepchord compose '따뜻한 C장조 피아노 스케치, 마지막 Cmaj7' --bar
 deepchord compose '반주를 더 비워줘' --bars 4 --previous-run /path/to/run --model gemma4:12b-mlx
 ```
 
-매번 `composition.json`, 편집 가능한 `composition.mid`, `validation.json`, `EXPLANATION.md`, `explanation.json`을 보존합니다. 설명에는 마디별 코드와 구성음, 코드명에서 검출한 ii–V–I, 검색한 이론 후보를 구분합니다. 검색한 내용을 모두 실제로 적용했다고 표시하지 않습니다. `deepchord explain RUN`으로 JSON 수정 후 다시 계산합니다.
+결과마다 편집 가능한 MIDI 파일(`composition.mid`)과 곡 설명(`EXPLANATION.md`), 원본 데이터와 검사 결과가 저장됩니다. MIDI를 Logic 등에서 열어 음표를 직접 수정할 수 있습니다. 설명에는 사용한 코드와 참고용으로 검색한 이론을 구분해 적습니다.
 
-실행 자료는 기본 `~/.local/share/sovereign-music/`에 저장하며 `SOVEREIGN_MUSIC_HOME`으로 바꿀 수 있습니다. 같은 세션 이름으로 재시작하면 이어집니다. 모델 출력이 음표·코드 검사를 통과하지 못하면 한 번 수정 요청 후 실패를 기록하고 다음 주문을 받습니다. `Start.command`도 지속 세션을 엽니다.
+결과는 기본적으로 홈 폴더의 `.local/share/sovereign-music/`에 저장됩니다. 생성 결과가 검사에 실패하면 한 번 다시 시도합니다. 그래도 실패하면 이전에 성공한 결과는 보존하고 다음 요청을 받습니다. Mac에서는 `Start.command`로도 대화를 시작할 수 있습니다.
 
 ## Logic Pro + MCP — Mac
 
@@ -108,9 +113,51 @@ deepchord session --name my-song --model gemma4:12b-mlx --logic \
 deepchord logic open /path/to/run --mcp-config /path/to/private/logic.toml
 ```
 
-전체 MIDI의 템포·음표·CC64를 유지해 Logic에 열기를 요청하고, 선택적 MCP로 세션·리전 상태를 읽습니다. 사용자가 현재 작업을 저장하고 대화상자·악기·재생·프로젝트 저장을 확인해야 합니다. CLI의 MCP는 현재 읽기 전용이며 자동 악기 선택·플러그인 믹스·프로젝트 저장을 완료하지 않습니다. `logic-handoff.json`은 요청 수락과 실제 가져오기·소리를 구분합니다. [Logic 안내](docs/logic.ko.md).
+위의 `--logic`과 `logic open`은 MIDI 열기를 요청하고 선택적으로 상태를 살펴봅니다. 요청 수락은 가져오기나 소리의 확인이 아닙니다. 아래의 `--logic-project`는 별도로 새 프로젝트 저장까지 시도합니다. 악기·재생·믹스는 직접 확인해야 합니다. [Logic 안내](docs/logic.ko.md).
 
 Logic은 Mac에서 실행합니다. Linux·Windows에서는 `deepchord export RUN --out /path/to/new.mid`로 DAW에 전달하거나 Mac으로 파일을 옮깁니다. MIDI 수정은 이전에 렌더한 오디오나 Logic 내부 편집과 자동 동기화되지 않습니다.
+
+### 대화가 끝나면 새 Logic 프로젝트로 저장
+
+Mac에서 Logic Pro MCP 설정을 마친 뒤, 현재 Logic 프로젝트를 저장하고 닫으세요. 아래 예시에서 설정 파일과 저장할 위치를 실제 경로로 바꾸세요. 저장할 이름은 아직 존재하지 않는 `.logicx`여야 합니다.
+
+```sh
+deepchord session --name my-song --bars 4 --model gemma4:12b-mlx \
+  --mcp-config /path/to/logic.toml --logic-project /path/to/my-song.logicx
+```
+
+곡을 만들고 수정한 뒤 `/quit`을 입력하면 마지막으로 성공한 버전을 Logic에서 열고 새 프로젝트로 저장합니다. Logic이 꺼져 있으면 실행합니다. 마지막 요청이 실패했거나 Logic의 프로젝트 선택 화면을 확인하지 못하면 자동 저장을 중단합니다. 음표별 가져오기 일치, 소리와 완성도까지 자동으로 확인하는 기능은 아직 없으므로 Logic에서 직접 확인하세요. 이전 버전과 편집 가능한 MIDI도 보존됩니다. 이 기능은 기존 Logic 프로젝트를 직접 수정하는 기능이 아니라 새 MIDI 버전으로 새 프로젝트를 만드는 기능입니다.
+
+### 기존 Logic 프로젝트의 템포 바꾸기
+
+기존 프로젝트를 Logic에서 먼저 열고, 아래 경로를 실제 프로젝트와 새로 저장할 이름으로 바꾸세요. 현재는 **숫자로 지정한 템포 변경만** 지원합니다. Gemma가 요청을 해석하면 DeepChord가 새 사본을 저장하고, 템포를 변경한 뒤 결과를 확인하고 저장합니다. 원본 파일은 덮어쓰지 않습니다.
+
+```sh
+deepchord logic edit /path/to/song.logicx '템포를 92 BPM으로 바꿔줘' \
+  --out /path/to/song-92.logicx --mcp-config /path/to/logic.toml
+```
+
+대상 프로젝트가 열려 있지 않거나 저장·변경 결과를 확인할 수 없으면 중단합니다. 작업 중에는 Logic 창을 조작하지 마세요. 실패 후에는 새 사본이나 저장 창이 남을 수 있으므로 상태를 확인한 뒤 다시 실행하세요. 음표·리전·악기·믹스의 자유로운 수정은 아직 지원하지 않습니다.
+
+### 기존 곡의 음표 바꾸기와 리전 옮기기
+
+`logic edit-note`는 저장해 둔 곡을 복사하고, Gemma가 지정한 **음표 하나의 높이**를 바꿉니다. 원본은 그대로 남습니다. 페달을 포함한 전체 이벤트 목록을 비교하고, 저장한 파일을 다시 열어 수정 내용이 남았는지 확인합니다. Codex를 실행할 필요는 없습니다.
+
+```sh
+deepchord logic edit-note "$HOME/Music/song.logicx" 'Piano 리전의 첫 음표를 온음 올려줘' \
+  --out "$HOME/Music/song-edited.logicx" --model gemma4:12b-mlx \
+  --mcp-config /path/to/logic.toml
+```
+
+리전 전체를 다른 마디로 옮기려면 `logic move-region`을 사용하세요. 리전 안의 음표와 페달이 함께 이동하고, 길이와 트랙은 유지됩니다.
+
+```sh
+deepchord logic move-region "$HOME/Music/song.logicx" 'Piano 리전을 5마디 시작으로 옮겨줘' \
+  --out "$HOME/Music/song-moved.logicx" --model gemma4:12b-mlx \
+  --mcp-config /path/to/logic.toml
+```
+
+처음에는 [설치와 기존 곡 편집 안내](docs/logic.ko.md#기존-곡의-음표-편집)를 따라 MCP 확장을 준비하세요. 현재는 한 번에 음표 하나의 높이 또는 리전 하나의 마디 위치를 바꿀 수 있습니다. 여러 음표 수정, 리전 길이 변경, 같은 이름의 여러 리전은 아직 지원하지 않습니다. 작업 중에는 Logic을 조작하지 마세요.
 
 ## LoRA와 이론 검토
 

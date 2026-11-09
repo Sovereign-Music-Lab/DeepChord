@@ -58,5 +58,25 @@ class WorkflowTests(unittest.TestCase):
             with patch('sovereign_music.logic.sys.platform','darwin'),patch('sovereign_music.logic.subprocess.run',return_value=subprocess.CompletedProcess([],1,'','missing app')):
                 with self.assertRaises(RuntimeError):logic.open_run(p)
             self.assertEqual(json.loads((p/'logic-handoff.json').read_text(encoding='utf-8'))['status'],'launch_failed')
+    def test_build_refuses_existing_destination_before_open(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);p=root/'song';demo(p);destination=root/'existing.logicx';destination.mkdir()
+            with patch('sovereign_music.logic.sys.platform','darwin'),patch('sovereign_music.logic.Client') as client:
+                with self.assertRaises(ValueError):logic.build_project(p,destination,root/'config.toml')
+                client.assert_not_called()
+    def test_build_refuses_to_replace_open_project(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);p=root/'song';demo(p)
+            class Existing:
+                def __init__(self,config):pass
+                def __enter__(self):return self
+                def __exit__(self,*args):pass
+                def tool(self,name,command,params=None):
+                    if command=='is_running':return {'structuredContent':{'message':'true'}}
+                    if command=='health':return {'structuredContent':{'logic_pro_running':True,'logic_pro_project_chooser_visible':False}}
+                    raise AssertionError(command)
+            with patch('sovereign_music.logic.sys.platform','darwin'),patch('sovereign_music.logic.Client',Existing),patch('sovereign_music.logic.subprocess.run') as open_call:
+                with self.assertRaises(RuntimeError):logic.build_project(p,root/'new.logicx',root/'config.toml')
+                open_call.assert_not_called()
 
 if __name__=='__main__':unittest.main()

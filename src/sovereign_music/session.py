@@ -12,6 +12,8 @@ from . import core
 def run(args,input_fn=input,output=print):
     if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',args.name):raise ValueError('Session name: 1..64 letters, digits, underscore or hyphen')
     if args.logic and __import__('sys').platform!='darwin':raise ValueError('Logic runs on a Mac. Use MIDI export on this OS, or transfer runs to a Mac.')
+    project_path=getattr(args,'logic_project',None)
+    if project_path and (not args.mcp_config or args.logic):raise ValueError('--logic-project requires --mcp-config and cannot be combined with --logic')
     folder=core.ORG/'sessions'/args.name;folder.mkdir(parents=True,exist_ok=True)
     lock=folder/'active.lock'
     try:handle=lock.open('x')
@@ -27,6 +29,7 @@ def run(args,input_fn=input,output=print):
         output('/quit /status /explain /new /open. Enter another request to revise; prior versions remain saved.')
         queued=list(getattr(args,'request',[]) or [])
         interactive=not queued
+        new_success=False
         while True:
             if queued:request=queued.pop(0)
             elif not interactive:break
@@ -36,7 +39,7 @@ def run(args,input_fn=input,output=print):
             if not request:continue
             if request=='/quit':break
             if request=='/status':output(json.dumps(state,ensure_ascii=False,indent=2));continue
-            if request=='/new':state['latest_run']=None;save();output('Next request starts a new piece. Earlier versions remain saved.');continue
+            if request=='/new':state['latest_run']=None;new_success=False;save();output('Next request starts a new piece. Earlier versions remain saved.');continue
             if request=='/explain':
                 if state['latest_run']:output((Path(state['latest_run'])/'EXPLANATION.md').read_text(encoding='utf-8'))
                 else:output('No successful version yet.')
@@ -49,11 +52,13 @@ def run(args,input_fn=input,output=print):
                 except (ValueError,OSError,RuntimeError,TimeoutError) as e:output('Handoff incomplete: '+str(e))
                 continue
             if request.startswith('/'):output('Unknown command; use /quit /status /explain /new /open.');continue
+            new_success=False
             turn={'request':request,'previous_run':state['latest_run'],'status':'running','model':args.model,'adapter':str(args.adapter) if args.adapter else None}
             state['turns'].append(turn);save()
             try:
                 a=argparse.Namespace(prompt=request,bars=args.bars,model=args.model,adapter=args.adapter,previous_run=state['latest_run'],theory_model=getattr(args,'theory_model',None),theory_adapter=getattr(args,'theory_adapter',None))
                 result=core.compose(a);turn.update(status='composed',run=str(result));state['latest_run']=str(result);save()
+                new_success=True
                 # Explain first: a DAW failure must not discard a valid composition.
                 output((result/'EXPLANATION.md').read_text(encoding='utf-8'))
                 output('Editable source: '+str(result))
@@ -65,6 +70,18 @@ def run(args,input_fn=input,output=print):
                 turn.update(status='interrupted');save();break
             except (ValueError,KeyError,TypeError,OSError,RuntimeError,TimeoutError,ImportError,subprocess.SubprocessError) as e:
                 turn.update(status='failed',error=str(e));output('Request failed; previous successful version retained. '+str(e))
+            save()
+        if project_path:
+            if not new_success:
+                state['logic_build']={'status':'skipped','error':'No successful final request in this session'};save()
+                raise RuntimeError('Logic project not built: the final request did not succeed')
+            from .logic import build_project
+            try:
+                state['logic_build']=build_project(state['latest_run'],project_path,args.mcp_config)
+                output('Logic project saved: '+str(project_path))
+            except (ValueError,OSError,RuntimeError,TimeoutError,subprocess.SubprocessError) as e:
+                state['logic_build']={'status':'failed','error':str(e)};save()
+                raise RuntimeError('Logic project incomplete: '+str(e)) from e
             save()
         return state
     finally:

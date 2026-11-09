@@ -4,4 +4,5 @@ recursive-include scripts *.py
 recursive-include tests *.py
 recursive-include src/sovereign_music *.py
 recursive-include src/sovereign_music/assets *.toml
+recursive-include src/sovereign_music/assets *.txt
 exclude src/sovereign_music/*.jsonl

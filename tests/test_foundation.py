@@ -80,6 +80,18 @@ class SessionTests(unittest.TestCase):
             with patch.object(core,'ORG',Path(d)),patch.object(core,'compose') as compose:
                 session.run(self.args(['/new','/quit','must not run']),output=lambda _:None)
                 compose.assert_not_called()
+    def test_logic_build_uses_final_success_and_skips_failed_revision(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d);a=self.args(['first','revise']);a.mcp_config=p/'logic.toml';a.logic_project=p/'new.logicx'
+            def compose(args):
+                if args.prompt=='revise':raise ValueError('invalid model output')
+                run=p/'run';demo(run);foundation.write_explanation(json.loads((run/'composition.json').read_text(encoding='utf-8')),run);return run
+            with patch.object(core,'ORG',p),patch.object(core,'compose',side_effect=compose),patch('sovereign_music.logic.build_project') as build:
+                with self.assertRaises(RuntimeError):session.run(a,output=lambda _:None)
+                build.assert_not_called()
+                state=json.loads((p/'sessions/test/session.json').read_text())
+                self.assertEqual(state['logic_build']['status'],'skipped')
+                self.assertEqual(state['latest_run'],str(p/'run'))
     def test_platform_and_name_guard(self):
         a=self.args(['/quit']);a.name='../outside'
         with self.assertRaises(ValueError):session.run(a)

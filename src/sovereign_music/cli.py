@@ -19,14 +19,21 @@ def parser():
     fe=sub.add_parser('foundation');fe.add_argument('--out',type=Path,required=True)
     ex=sub.add_parser('explain');ex.add_argument('run',type=Path)
     se=sub.add_parser('session');se.add_argument('--name',default='studio');se.add_argument('--model',default=core.MODEL);se.add_argument('--bars',type=int,choices=range(1,17),default=4);se.add_argument('--adapter',type=Path);se.add_argument('--theory-model',type=Path);se.add_argument('--theory-adapter',type=Path);se.add_argument('--logic',action='store_true');se.add_argument('--mcp-config',type=Path);se.add_argument('--request',action='append',help='Queue requests non-interactively; omit to keep asking until /quit')
+    se.add_argument('--logic-project',type=Path,help='On exit, save the latest successful new version as a new Logic project (requires --mcp-config)')
     de=sub.add_parser('export');de.add_argument('run',type=Path);de.add_argument('--out',type=Path,required=True)
     c=sub.add_parser('compose');c.add_argument('prompt');c.add_argument('--bars',type=int,choices=range(1,17),default=8);c.add_argument('--model',default=core.MODEL);c.add_argument('--adapter',type=Path);c.add_argument('--previous-run',type=Path);c.add_argument('--theory-model',type=Path);c.add_argument('--theory-adapter',type=Path);c.add_argument('--logic',action='store_true');c.add_argument('--mcp-config',type=Path)
     d=sub.add_parser('demo');d.add_argument('--out',type=Path,required=True)
     v=sub.add_parser('validate');v.add_argument('file',type=Path)
     f=sub.add_parser('feedback');f.add_argument('run',type=Path);f.add_argument('--rating',type=int,choices=range(1,6),required=True);f.add_argument('--note',required=True)
     l=sub.add_parser('logic');ls=l.add_subparsers(dest='action',required=True)
+    lu=ls.add_parser('setup',help='Build the optional Logic editing extension in a new folder');lu.add_argument('--out',type=Path,required=True)
     li=ls.add_parser('inspect');li.add_argument('--mcp-config',type=Path,required=True)
     lo=ls.add_parser('open');lo.add_argument('run',type=Path);lo.add_argument('--mcp-config',type=Path)
+    lb=ls.add_parser('build');lb.add_argument('run',type=Path);lb.add_argument('--out',type=Path,required=True);lb.add_argument('--mcp-config',type=Path,required=True)
+    le=ls.add_parser('edit');le.add_argument('project',type=Path);le.add_argument('request');le.add_argument('--out',type=Path,required=True);le.add_argument('--mcp-config',type=Path,required=True);le.add_argument('--model',default=core.MODEL)
+    ln=ls.add_parser('edit-note',help='Change one existing note pitch in a new project copy, preserving pedal events');ln.add_argument('project',type=Path);ln.add_argument('request');ln.add_argument('--out',type=Path,required=True);ln.add_argument('--mcp-config',type=Path,required=True);ln.add_argument('--model',default=core.MODEL)
+    lm=ls.add_parser('move-region',help='Move one existing region to another whole bar in a project copy');lm.add_argument('project',type=Path);lm.add_argument('request');lm.add_argument('--out',type=Path,required=True);lm.add_argument('--mcp-config',type=Path,required=True);lm.add_argument('--model',default=core.MODEL)
+    for editor in (ln,lm):editor.add_argument('--json',action='store_true',help='Print the full machine-readable result instead of a short summary')
     t=sub.add_parser('train');ts=t.add_subparsers(dest='action',required=True)
     tp=ts.add_parser('prepare');tp.add_argument('source',type=Path);tp.add_argument('--out',type=Path,required=True)
     td=ts.add_parser('smoke-data');td.add_argument('--out',type=Path,required=True)
@@ -79,8 +86,22 @@ def execute(a):
         with (a.run/'feedback.jsonl').open('a') as f:f.write(json.dumps(row,ensure_ascii=False)+'\n')
         return 'Feedback saved; no weights changed.'
     if a.cmd=='logic':
-        from .logic import inspect,open_run
-        return inspect(a.mcp_config) if a.action=='inspect' else open_run(a.run,a.mcp_config)
+        if a.action=='move-region':
+            from .logic_edit import move_region_copy
+            return move_region_copy(a.project,a.out,a.request,a.model,a.mcp_config)
+        if a.action=='setup':
+            from .logic_setup import install
+            return install(a.out)
+        if a.action=='edit-note':
+            from .logic_edit import edit_pitch_copy
+            return edit_pitch_copy(a.project,a.out,a.request,a.model,a.mcp_config)
+        if a.action=='edit':
+            from .logic_edit import edit_tempo_copy
+            return edit_tempo_copy(a.project,a.out,a.request,a.model,a.mcp_config)
+        from .logic import inspect,open_run,build_project
+        if a.action=='inspect':return inspect(a.mcp_config)
+        if a.action=='build':return build_project(a.run,a.out,a.mcp_config)
+        return open_run(a.run,a.mcp_config)
     if a.cmd=='train':
         from . import training as t
         if a.action=='prepare':return str(t.prepare(a.source,a.out))
@@ -93,7 +114,14 @@ def main():
     for stream in [sys.stdout,sys.stderr]:
         if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf-8')
     try:
-        result=execute(parser().parse_args());print(json.dumps(result,ensure_ascii=False,indent=2) if isinstance(result,(dict,list)) else result)
+        args=parser().parse_args()
+        result=execute(args)
+        if args.cmd=='logic' and args.action in ('edit-note','move-region') and not args.json:
+            print('Saved project: '+result['copy'])
+            print('Original preserved. Saved notes and pedal events checked.')
+            print('Details: '+str(Path(result['evidence'])/'report.json'))
+        else:
+            print(json.dumps(result,ensure_ascii=False,indent=2) if isinstance(result,(dict,list)) else result)
     except (ValueError,KeyError,TypeError,OSError,RuntimeError,subprocess.SubprocessError,ImportError) as e:
         print(f'ERROR: {e}',file=sys.stderr);raise SystemExit(1)
 

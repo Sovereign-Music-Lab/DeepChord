@@ -2,3 +2,10 @@ DeepChord and Sovereign Music Lab website
 Copyright 2026 Sovereign Music Lab contributors
 
 Licensed under the Apache License, Version 2.0. See LICENSE.
+
+The optional Logic MCP extension patch contains modified portions of
+Logic Pro MCP (https://github.com/MongLong0214/logic-pro-mcp),
+Copyright (c) 2025 Kolton Jacobs, distributed under the MIT License.
+See src/sovereign_music/assets/logic-mcp-LICENSE.txt. The patch and
+its Swift additions are provided under that license. DeepChord's
+Python integration remains Apache-2.0.

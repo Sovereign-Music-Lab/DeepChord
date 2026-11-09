@@ -1,0 +1,1754 @@
+diff --git a/Sources/LogicProMCP/Channels/AccessibilityChannel+Regions.swift b/Sources/LogicProMCP/Channels/AccessibilityChannel+Regions.swift
+index 5593a41..e39e57d 100644
+--- a/Sources/LogicProMCP/Channels/AccessibilityChannel+Regions.swift
++++ b/Sources/LogicProMCP/Channels/AccessibilityChannel+Regions.swift
+@@ -364,10 +364,13 @@ extension AccessibilityChannel {
+                     endBar: entry.info.endBar,
+                     kind: entry.info.kind
+                 ))
+-            case .success:
+-                continue
+-            case .failure(let error) where error.isDefinitiveAbsence:
++            case .success(.some):
+                 continue
++            // An absent AXSelected attribute does not establish that this
++            // region is unselected. Refuse the whole observation instead of
++            // misreporting an unknown selection as an exact empty set.
++            case .success(.none):
++                return nil
+             case .failure:
+                 return nil
+             }
+diff --git a/Sources/LogicProMCP/Dispatchers/MIDIDispatcher.swift b/Sources/LogicProMCP/Dispatchers/MIDIDispatcher.swift
+index 24c5299..e33cda9 100644
+--- a/Sources/LogicProMCP/Dispatchers/MIDIDispatcher.swift
++++ b/Sources/LogicProMCP/Dispatchers/MIDIDispatcher.swift
+@@ -10,7 +10,7 @@ struct MIDIDispatcher: OperationTraceDispatching {
+ 
+     static let tool = commandTool(
+         name: "logic_midi",
+-        description: "MIDI operations in Logic Pro. Commands: send_note, send_chord, send_cc, send_program_change, send_pitch_bend, send_aftertouch, send_sysex, play_sequence, import_file, export_track_midi, read_track_notes, read_selected_region_events, list_ports, create_virtual_port, step_input, mmc_play, mmc_stop, mmc_record, mmc_locate. Params: send_note/send_chord -> MIDI note payloads; send_cc/program_change/pitch_bend/aftertouch -> controller payloads; send_sysex -> { bytes: [Int] } or { data: String } (≤1024 bytes); play_sequence -> { notes: \"pitch,offsetMs,durMs[,vel[,ch]];...\" } (≤256 events, tight server-side timing); import_file -> { path: server-managed LogicProMCP temp .mid } and wait for verified:true before issuing the next import; export_track_midi -> { project_ref: String, target_ref: track reference, path: absolute new .mid file, allow_temporary_track_rename?: Bool }; read_track_notes -> { project_ref: String, target_ref: track reference, allow_temporary_track_rename?: Bool }; read_selected_region_events -> {} and returns State B with a stable selected-region observation plus unbound raw Event List rows; event_list_owner_proven and canonical_notes_complete remain false until identity, timing, and complete traversal are proved. Both native file operations require a complete fresh track namespace and original physical bindings, use no caller-prepared region selection, never overwrite a destination, and return SMF tick/PPQ facts, not project-relative or previous-import equivalence. Repeated target names report every colliding Arrange index and remain nonmutating unless allow_temporary_track_rename is explicitly true; that opt-in uses one verified temporary rename and requires verified restoration before success. Hidden/incomplete namespaces and unqualified export layouts refuse. list_ports -> {} (same data as logic://midi/ports; prefer the resource for polling); mmc_locate -> { bar: Int } or { time: \"HH:MM:SS:FF\" }; create_virtual_port -> { name: String }. The 7 send-style ops (send_note, send_chord, send_cc, send_program_change, send_pitch_bend, send_aftertouch, play_sequence) accept an optional { port: \"midi\"|\"keycmd\" } selector — default \"midi\" routes to the CoreMIDI virtual port; \"keycmd\" routes to the send-only MIDIKeyCommands virtual port. That path has no programmatic Logic binding or outcome readback and returns State B without requesting setup. Channel is 1-based (1..16). All other ops reject `port` with invalid_params.",
++        description: "MIDI operations in Logic Pro. Commands: send_note, send_chord, send_cc, send_program_change, send_pitch_bend, send_aftertouch, send_sysex, play_sequence, import_file, export_track_midi, read_track_notes, read_selected_region_events, prepare_region_events, edit_prepared_note_pitch, move_prepared_region, list_ports, create_virtual_port, step_input, mmc_play, mmc_stop, mmc_record, mmc_locate. Params: send_note/send_chord -> MIDI note payloads; send_cc/program_change/pitch_bend/aftertouch -> controller payloads; send_sysex -> { bytes: [Int] } or { data: String } (≤1024 bytes); play_sequence -> { notes: \"pitch,offsetMs,durMs[,vel[,ch]];...\" } (≤256 events, tight server-side timing); import_file -> { path: server-managed LogicProMCP temp .mid } and wait for verified:true before issuing the next import; export_track_midi -> { project_ref: String, target_ref: track reference, path: absolute new .mid file, allow_temporary_track_rename?: Bool }; read_track_notes -> { project_ref: String, target_ref: track reference, allow_temporary_track_rename?: Bool }; move_prepared_region -> {preparation_id: String, start_bar: Int}; requires foreground Logic and stopped transport, navigates uniquely observed bar/beat controls in the bound window with observed increments, consumes the physical preparation once, owns Arrange focus before its menu, refreshes Event List after moving, verifies all event positions shifted together and other observed region bounds remained unchanged; does not save. edit_prepared_note_pitch -> {preparation_id: String, row_index: Int, expected_pitch: Int, pitch: Int}; consumes a same-process preparation once, changes one observed note pitch, verifies the full raw event diff, and does not save. General canonical identity/completeness remain unqualified. prepare_region_events -> {project_path: absolute .logicx path, region_name: String, track_index: zero-based Int, start_bar: Int, end_bar: Int}; navigates to a uniquely observed region and opens the Event List, possibly enlarging the window. Leaves selection on the target and returns partial raw events, not canonical identity/completeness proof. read_selected_region_events -> {} and returns State B with a stable selected-region observation plus unbound raw Event List rows; event_list_owner_proven and canonical_notes_complete remain false until identity, timing, and complete traversal are proved. Both native file operations require a complete fresh track namespace and original physical bindings, use no caller-prepared region selection, never overwrite a destination, and return SMF tick/PPQ facts, not project-relative or previous-import equivalence. Repeated target names report every colliding Arrange index and remain nonmutating unless allow_temporary_track_rename is explicitly true; that opt-in uses one verified temporary rename and requires verified restoration before success. Hidden/incomplete namespaces and unqualified export layouts refuse. list_ports -> {} (same data as logic://midi/ports; prefer the resource for polling); mmc_locate -> { bar: Int } or { time: \"HH:MM:SS:FF\" }; create_virtual_port -> { name: String }. The 7 send-style ops (send_note, send_chord, send_cc, send_program_change, send_pitch_bend, send_aftertouch, play_sequence) accept an optional { port: \"midi\"|\"keycmd\" } selector — default \"midi\" routes to the CoreMIDI virtual port; \"keycmd\" routes to the send-only MIDIKeyCommands virtual port. That path has no programmatic Logic binding or outcome readback and returns State B without requesting setup. Channel is 1-based (1..16). All other ops reject `port` with invalid_params.",
+         commandDescription: "MIDI command to execute"
+     )
+ 
+@@ -247,6 +247,27 @@ struct MIDIDispatcher: OperationTraceDispatching {
+             }
+             return await routedTextResult(router, operation: "midi.list_ports")
+ 
++        case "move_prepared_region":
++            let traceID = await startTraceIfEnabled(command: command)
++            let result = await withWriteBoundaryArmed(traceID) {
++                toolTextResult(await ObservedRegionMove.execute(params: params))
++            }
++            return await finalizeTrace(result, traceID: traceID)
++
++        case "edit_prepared_note_pitch":
++            let traceID = await startTraceIfEnabled(command: command)
++            let result = await withWriteBoundaryArmed(traceID) {
++                toolTextResult(ObservedPitchEdit.execute(params: params))
++            }
++            return await finalizeTrace(result, traceID: traceID)
++
++        case "prepare_region_events":
++            let traceID = await startTraceIfEnabled(command: command)
++            let result = await withWriteBoundaryArmed(traceID) {
++                toolTextResult(await RegionEventPreparation.prepare(params: params))
++            }
++            return await finalizeTrace(result, traceID: traceID)
++
+         case "read_selected_region_events":
+             guard params.isEmpty else {
+                 return toolInvalidParamsResult("read_selected_region_events accepts no parameters")
+diff --git a/Sources/LogicProMCP/MIDIReadback/EventListMIDINoteReadbackProvider.swift b/Sources/LogicProMCP/MIDIReadback/EventListMIDINoteReadbackProvider.swift
+index f0a9a11..c861752 100644
+--- a/Sources/LogicProMCP/MIDIReadback/EventListMIDINoteReadbackProvider.swift
++++ b/Sources/LogicProMCP/MIDIReadback/EventListMIDINoteReadbackProvider.swift
+@@ -73,6 +73,7 @@ enum EventListMIDINoteReadbackProviderError: Error, Equatable, Sendable {
+     case itemCountMissing
+     case regionPathMissing
+     case rowsUnavailable
++    case harvestContextChanged(field: String)
+     case rowSelectionBaselineUnavailable(status: Int32)
+     case rowSelectionBaselineMalformed
+     case rowSelectionFailed(index: Int)
+@@ -115,6 +116,8 @@ enum EventListMIDINoteReadbackProviderError: Error, Equatable, Sendable {
+             self = .itemCountMissing
+         case .regionPathMissing:
+             self = .regionPathMissing
++        case let .harvestContextChanged(field):
++            self = .harvestContextChanged(field: field)
+         case .rowsUnavailable:
+             self = .rowsUnavailable
+         case let .rowSelectionBaselineUnavailable(status):
+diff --git a/Sources/LogicProMCP/MIDIReadback/EventListReadbackCollector.swift b/Sources/LogicProMCP/MIDIReadback/EventListReadbackCollector.swift
+index 41039aa..7e9a415 100644
+--- a/Sources/LogicProMCP/MIDIReadback/EventListReadbackCollector.swift
++++ b/Sources/LogicProMCP/MIDIReadback/EventListReadbackCollector.swift
+@@ -43,6 +43,30 @@ enum EventListReadbackCollector {
+         let firstRowCellChildren: [String: Int]
+         let rawItemCountText: String
+         let rawRegionPath: String
++        /// Raw checkbox states only when two reads agree; no completeness claim.
++        var stableFilterStates: [String: Bool]? = nil
++    }
++
++    /// Check the surrounding pane as well as its rows. Equal rows alone do not
++    /// establish that the user kept the same pane/filters during a long harvest.
++    /// This is a drift guard, not a region identity or completeness proof.
++    static func validateHarvestContext(
++        pathBefore: String, pathAfter: String,
++        countBefore: String, countAfter: String,
++        filtersBefore: [String: Bool]?, filtersAfter: [String: Bool]?
++    ) throws {
++        guard pathBefore == pathAfter else {
++            throw EventListReadbackCollectorError.harvestContextChanged(field: "region_path")
++        }
++        guard countBefore == countAfter else {
++            throw EventListReadbackCollectorError.harvestContextChanged(field: "item_count")
++        }
++        guard let filtersBefore, let filtersAfter else {
++            throw EventListReadbackCollectorError.filterEvidenceIncomplete(title: "harvest boundary")
++        }
++        guard filtersBefore == filtersAfter else {
++            throw EventListReadbackCollectorError.harvestContextChanged(field: "filters")
++        }
+     }
+ 
+     /// The public partial observer may move the Event List row selection only to materialize
+@@ -179,6 +203,7 @@ enum EventListReadbackCollector {
+                 throw EventListReadbackCollectorError.regionPathMissing
+             }
+ 
++            let filtersBefore = try? readFilters(in: paneAndTable.pane, runtime: runtime.ax)
+             let headers = try readHeaders(of: paneAndTable.table, runtime: runtime.ax)
+             let rowElements: [AXUIElement] = AXHelpers.getAttribute(
+                 paneAndTable.table,
+@@ -197,13 +222,26 @@ enum EventListReadbackCollector {
+             let rows = harvest.orderedRowKeys.compactMap { harvest.passA[$0] }
+             let verificationRows = harvest.orderedRowKeys.compactMap { harvest.passB[$0] }
+ 
++            let filtersAfter = try? readFilters(in: paneAndTable.pane, runtime: runtime.ax)
++            let before = filtersBefore.map { Dictionary(uniqueKeysWithValues: $0.checkboxes.map { ($0.id, $0.checked) }) }
++            let after = filtersAfter.map { Dictionary(uniqueKeysWithValues: $0.checkboxes.map { ($0.id, $0.checked) }) }
++            try validateHarvestContext(
++                pathBefore: rawRegionPath,
++                pathAfter: readStaticText(label: AXLocalePolicy.eventListRegionPathHelp,
++                                          in: paneAndTable.pane, runtime: runtime.ax),
++                countBefore: rawItemCountText,
++                countAfter: readStaticText(label: AXLocalePolicy.eventListItemCountHelp,
++                                           in: paneAndTable.pane, runtime: runtime.ax),
++                filtersBefore: before, filtersAfter: after
++            )
+             return ProbeObservation(
+                 liveHeaderTitles: sortButtonTitles(of: paneAndTable.table, runtime: runtime.ax),
+                 rows: rows,
+                 verificationRows: verificationRows,
+                 firstRowCellChildren: firstRowCellChildren,
+                 rawItemCountText: rawItemCountText,
+-                rawRegionPath: rawRegionPath
++                rawRegionPath: rawRegionPath,
++                stableFilterStates: before != nil && before == after ? before : nil
+             )
+         }
+ 
+@@ -261,14 +299,14 @@ enum EventListReadbackCollector {
+ 
+     /// One row captured from a viewport-materialized Event List window. The key is the table row
+     /// ordinal, not a persistent note identity.
+-    struct VirtualWindowRow: Sendable {
++    struct VirtualWindowRow: Sendable, Equatable {
+         let key: RowKey
+         let row: RawEventRow
+     }
+ 
+     /// A pure input to the window-stitching boundary. `totalRows` is only the count reported by the
+     /// same observed table; accepting all of its rows does not prove count semantics or exhaustion.
+-    struct VirtualWindowObservation: Sendable {
++    struct VirtualWindowObservation: Sendable, Equatable {
+         let totalRows: Int
+         let rows: [VirtualWindowRow]
+     }
+@@ -977,14 +1015,14 @@ enum EventListReadbackCollector {
+         guard let rows: [AXUIElement] = AXHelpers.getAttribute(table, "AXRows", runtime: runtime) else {
+             throw EventListReadbackCollectorError.rowsUnavailable
+         }
+-        let passA = try harvestVirtualWindowPass(
++        let passA = try harvestIndexedRowPass(
+             rows: rows,
+             table: table,
+             headers: headers,
+             runtime: runtime,
+             telemetry: &telemetry
+         )
+-        let passB = try harvestVirtualWindowPass(
++        let passB = try harvestIndexedRowPass(
+             rows: rows,
+             table: table,
+             headers: headers,
+@@ -994,6 +1032,46 @@ enum EventListReadbackCollector {
+         return try stitchVirtualWindows([passA, passB])
+     }
+ 
++    /// Logic 13 can expose stale populated cells outside the current viewport.
++    /// Select and read each physical row rather than treating every populated
++    /// offscreen row as fresh. The caller restores the baseline selection.
++    private static func harvestIndexedRowPass(
++        rows: [AXUIElement], table: AXUIElement, headers: HeaderBinding,
++        runtime: AXHelpers.Runtime, telemetry: inout RowSelectionTelemetry
++    ) throws -> [VirtualWindowObservation] {
++        guard rows.count <= 10000 else {
++            throw EventListReadbackCollectorError.harvestIncomplete(populated: 0, total: rows.count, passes: 0)
++        }
++        if rows.isEmpty { return [.init(totalRows: 0, rows: [])] }
++        var windows: [VirtualWindowObservation] = []
++        for (index, row) in rows.enumerated() {
++            guard rowSelectionForwardWritePermitted() else {
++                throw EventListReadbackCollectorError.rowSelectionFailed(index: index)
++            }
++            telemetry.writeAttempted = true
++            guard AXHelpers.setAttribute(table, kAXSelectedRowsAttribute, [row] as CFArray, runtime: runtime) else {
++                throw EventListReadbackCollectorError.rowSelectionFailed(index: index)
++            }
++            Thread.sleep(forTimeInterval: 0.05)
++            let window = try stableVirtualWindow(read: {
++                guard let value = try? readRow(row, index: index, headers: headers, runtime: runtime),
++                      isPopulated(value, headers: headers) else { return .init(totalRows: rows.count, rows: []) }
++                return .init(totalRows: rows.count, rows: [.init(key: .init(index: index), row: value)])
++            })
++            guard window.rows.count == 1,
++                  let selected: [AXUIElement] = AXHelpers.getAttribute(table, kAXSelectedRowsAttribute, runtime: runtime),
++                  selected.count == 1, CFEqual(selected[0], row) else {
++                throw EventListReadbackCollectorError.harvestIncomplete(populated: windows.count, total: rows.count, passes: index + 1)
++            }
++            windows.append(window)
++        }
++        guard let current: [AXUIElement] = AXHelpers.getAttribute(table, "AXRows", runtime: runtime),
++              current.count == rows.count, zip(current, rows).allSatisfy({ CFEqual($0, $1) }) else {
++            throw EventListReadbackCollectorError.harvestContextChanged(field: "row_membership")
++        }
++        return windows
++    }
++
+     private static func harvestVirtualWindowPass(
+         rows: [AXUIElement],
+         table: AXUIElement,
+@@ -1006,7 +1084,7 @@ enum EventListReadbackCollector {
+         var selections = 0
+ 
+         while true {
+-            let window = readVirtualWindow(rows, headers: headers, runtime: runtime)
++            let window = try stableVirtualWindow(read: { readVirtualWindow(rows, headers: headers, runtime: runtime) })
+             windows.append(window)
+             observedKeys.formUnion(window.rows.map(\.key))
+             if observedKeys.count == rows.count { return windows }
+@@ -1043,6 +1121,25 @@ enum EventListReadbackCollector {
+         }
+     }
+ 
++    /// AX row children are recycled asynchronously after a selection scroll.
++    /// Do not stitch a viewport while its row contents are still settling.
++    static func stableVirtualWindow(
++        read: () -> VirtualWindowObservation,
++        settle: () -> Void = { Thread.sleep(forTimeInterval: 0.05) }
++    ) throws -> VirtualWindowObservation {
++        var previous = read()
++        for _ in 0..<12 {
++            guard rowSelectionForwardWritePermitted() else {
++                throw EventListReadbackCollectorError.harvestContextChanged(field: "operation_custody")
++            }
++            settle()
++            let current = read()
++            if current == previous { return current }
++            previous = current
++        }
++        throw EventListReadbackCollectorError.harvestContextChanged(field: "virtual_window_unstable")
++    }
++
+     private static func readVirtualWindow(
+         _ rows: [AXUIElement],
+         headers: HeaderBinding,
+@@ -1070,6 +1167,63 @@ enum EventListReadbackCollector {
+         }
+     }
+ 
++    /// Edit only a freshly materialized matching note row under caller-held
++    /// project/region custody. Whole-table preservation is checked by the caller.
++    static func editObservedPitch(window: AXUIElement, rowIndex: Int,
++                                  expectedRow: RawEventRow, pitch: Int,
++                                  validate: () throws -> Void, willWrite: () -> Void,
++                                  runtime: AXLogicProElements.Runtime) throws -> Int {
++        try validate()
++        let tab = try findEventTab(in: window, runtime: runtime.ax)
++        guard try checkedState(of: tab, runtime: runtime.ax) else { throw ObservedPitchEdit.Failure("event_tab_changed") }
++        let pane = try findEventPaneAndTable(for: tab, in: window, runtime: runtime.ax)
++        let headers = try readHeaders(of: pane.table, runtime: runtime.ax)
++        guard let rows: [AXUIElement] = AXHelpers.getAttribute(pane.table, "AXRows", runtime: runtime.ax),
++              rows.indices.contains(rowIndex),
++              let original: [AXUIElement] = AXHelpers.getAttribute(pane.table, kAXSelectedRowsAttribute, runtime: runtime.ax) else {
++            throw ObservedPitchEdit.Failure("note_row_or_selection_unavailable")
++        }
++        var telemetry = RowSelectionTelemetry()
++        let result = Result<Int, Error> {
++            try validate()
++            guard rowSelectionForwardWritePermitted() else { throw ObservedPitchEdit.Failure("write_lease_lost") }
++            telemetry.writeAttempted = true
++            guard AXHelpers.setAttribute(pane.table, kAXSelectedRowsAttribute, [rows[rowIndex]] as CFArray, runtime: runtime.ax) else {
++                throw ObservedPitchEdit.Failure("note_materialization_failed")
++            }
++            Thread.sleep(forTimeInterval: 0.05)
++            guard try readRow(rows[rowIndex], index: rowIndex, headers: headers, runtime: runtime.ax) == expectedRow,
++                  let column = headers.orderedIDs.firstIndex(of: AXColumnID(id: "Num")),
++                  let old = expectedRow[AXColumnID(id: "Num")]?.sliderValue else { throw ObservedPitchEdit.Failure("note_row_changed") }
++            let cells = AXHelpers.getChildren(rows[rowIndex], runtime: runtime.ax)
++            guard cells.indices.contains(column), let slider = AXHelpers.getChildren(cells[column], runtime: runtime.ax).first else {
++                throw ObservedPitchEdit.Failure("pitch_cell_unavailable")
++            }
++            return try ObservedPitchEdit.step(from: Int(old), to: pitch, read: {
++                let current = try readRow(rows[rowIndex], index: rowIndex, headers: headers, runtime: runtime.ax)
++                guard let n = current[AXColumnID(id: "Num")]?.sliderValue, n.isFinite, n.rounded() == n, (0...127).contains(n) else {
++                    throw ObservedPitchEdit.Failure("pitch_read_unavailable")
++                }
++                var allowed = expectedRow
++                allowed[AXColumnID(id: "Num")] = RawCell(sliderValue: n)
++                guard current == allowed else { throw ObservedPitchEdit.Failure("other_note_field_changed") }
++                return Int(n)
++            }, write: { requested in
++                guard rowSelectionForwardWritePermitted() else { throw ObservedPitchEdit.Failure("write_lease_lost") }
++                willWrite()
++                guard AXHelpers.setAttribute(slider, kAXValueAttribute, NSNumber(value: requested), runtime: runtime.ax) else {
++                    throw ObservedPitchEdit.Failure("pitch_write_outcome_unknown")
++                }
++                Thread.sleep(forTimeInterval: 0.05)
++            }, validate: validate)
++        }
++        try validate()
++        guard restoreRowSelection(original, table: pane.table, runtime: runtime.ax, telemetry: &telemetry) else {
++            throw ObservedPitchEdit.Failure("note_selection_restoration_failed")
++        }
++        return try result.get()
++    }
++
+     private static func readRow(
+         _ row: AXUIElement,
+         index: Int,
+@@ -1390,6 +1544,7 @@ enum EventListReadbackCollectorError: Error, Equatable, Sendable, CustomStringCo
+     case itemCountMissing
+     case regionPathMissing
+     case rowsUnavailable
++    case harvestContextChanged(field: String)
+     case rowSelectionBaselineUnavailable(status: Int32)
+     case rowSelectionBaselineMalformed
+     case rowSelectionFailed(index: Int)
+@@ -1428,6 +1583,7 @@ enum EventListReadbackCollectorError: Error, Equatable, Sendable, CustomStringCo
+         case let .filterEvidenceIncomplete(title): return "Event List filter evidence is incomplete: \(title)."
+         case .itemCountMissing: return "Event List Number of Items text is unavailable."
+         case .regionPathMissing: return "Event List Region Path text is unavailable."
++        case let .harvestContextChanged(field): return "Event List changed during harvest: \(field)."
+         case .rowsUnavailable: return "Event List AXRows is unavailable."
+         case let .rowSelectionBaselineUnavailable(status):
+             return "The original Event List row selection is unreadable (AX status \(status))."
+diff --git a/Sources/LogicProMCP/MIDIReadback/ObservedPitchEdit.swift b/Sources/LogicProMCP/MIDIReadback/ObservedPitchEdit.swift
+new file mode 100644
+index 0000000..b12fe1e
+--- /dev/null
++++ b/Sources/LogicProMCP/MIDIReadback/ObservedPitchEdit.swift
+@@ -0,0 +1,136 @@
++import ApplicationServices
++import Foundation
++import MCP
++
++/// Single-use, process-local custody for the explicitly prepared physical target.
++/// This qualifies an exact raw-row edit only; it does not mint canonical timing
++/// or generic hidden-region/traversal proofs for the upstream MIDI reader.
++enum ObservedPitchEdit {
++    struct Failure: Error { let reason: String; init(_ reason: String) { self.reason = reason } }
++    struct Prepared: @unchecked Sendable {
++        let target: RegionEventPreparation.Target
++        let window: AXUIElement
++        let region: AXUIElement
++        let baseline: SelectedRegionEventListReader.PartialRead
++        let expires: Date
++    }
++    private static let lock = NSLock()
++    nonisolated(unsafe) private static var prepared: [String: Prepared] = [:]
++
++    static func retain(target: RegionEventPreparation.Target, window: AXUIElement,
++                       region: AXUIElement, baseline: SelectedRegionEventListReader.PartialRead) -> String? {
++        guard baseline.rawRows.count <= 10000 else { return nil }
++        lock.lock(); defer { lock.unlock() }
++        prepared = prepared.filter { $0.value.expires > Date() }
++        if prepared.count >= 8, let oldest = prepared.min(by: { $0.value.expires < $1.value.expires })?.key {
++            prepared.removeValue(forKey: oldest)
++        }
++        let id = UUID().uuidString
++        prepared[id] = Prepared(target: target, window: window, region: region, baseline: baseline,
++                                expires: Date().addingTimeInterval(300))
++        return id
++    }
++    static func consume(_ id: String) -> Prepared? {
++        lock.lock(); defer { lock.unlock() }
++        guard let value = prepared.removeValue(forKey: id), value.expires > Date() else { return nil }
++        return value
++    }
++
++    /// Logic's AX pitch setter can advance by one semitone, not jump to the
++    /// requested number. Every next write requires an observed monotonic step.
++    static func step(from initial: Int, to target: Int, read: () throws -> Int,
++                     write: (Int) throws -> Void, validate: () throws -> Void) throws -> Int {
++        guard (0...127).contains(initial), (0...127).contains(target), initial != target else {
++            throw Failure("invalid_pitch_change")
++        }
++        var current = initial
++        var writes = 0
++        while current != target {
++            try validate()
++            guard try read() == current else { throw Failure("pitch_changed_before_write") }
++            try write(target); writes += 1
++            try validate()
++            let next = try read()
++            let expectedStep = current + (target > current ? 1 : -1)
++            guard next == target || next == expectedStep else { throw Failure("unexpected_pitch_write_outcome") }
++            current = next
++            guard writes <= abs(target - initial) else { throw Failure("pitch_step_limit") }
++        }
++        try validate()
++        guard try read() == target else { throw Failure("final_pitch_changed") }
++        return writes
++    }
++
++    static func execute(params: [String: Value], runtime: AXLogicProElements.Runtime = .production) -> String {
++        var wroteNote = false
++        do {
++            guard Set(params.keys) == ["preparation_id", "row_index", "expected_pitch", "pitch"],
++                  case .string(let id) = params["preparation_id"],
++                  case .int(let index) = params["row_index"], index >= 0,
++                  case .int(let old) = params["expected_pitch"], (0...127).contains(old),
++                  case .int(let pitch) = params["pitch"], (0...127).contains(pitch), old != pitch else {
++                throw Failure("invalid_pitch_edit_params")
++            }
++            guard let held = consume(id) else { throw Failure("preparation_expired_or_consumed") }
++            func validate() throws {
++                guard !Task.isCancelled, let window = AXLogicProElements.mainWindow(runtime: runtime), CFEqual(window, held.window),
++                      let document: String = AXHelpers.getAttribute(window, kAXDocumentAttribute, runtime: runtime.ax),
++                      let url = URL(string: document), url.isFileURL,
++                      url.standardizedFileURL.resolvingSymlinksInPath().path == held.target.projectPath,
++                      case .success(let inventory) = AccessibilityChannel.enumerateRegionItems(runtime: runtime),
++                      inventory.coversWholeArrangement,
++                      inventory.regions.filter({ $0.info.name == held.target.name }).count == 1,
++                      inventory.regions.contains(where: { CFEqual($0.item, held.region) }),
++                      let selection = AccessibilityChannel.selectedRegionObservation(from: inventory, runtime: runtime.ax),
++                      selection.scopeComplete, selection.selected.count == 1,
++                      held.target.matches(selection.selected[0]) else { throw Failure("prepared_target_changed") }
++            }
++            try validate()
++            let before = try SelectedRegionEventListReader.readProduction(runtime: runtime)
++            guard before.rawRows == held.baseline.rawRows,
++                  before.rawRegionPath == held.target.name,
++                  before.stableFilterStates == held.baseline.stableFilterStates,
++                  before.rawItemCountText == held.baseline.rawItemCountText,
++                  before.rowSelectionRestored,
++                  index < before.rawRows.count else { throw Failure("prepared_events_changed") }
++            let visibleTypes = ["noteEvents", "controller", "programChange", "pitchBend", "aftertouch", "polyAftertouch", "systemExclusive"]
++            guard visibleTypes.allSatisfy({ before.stableFilterStates?[$0] == true }),
++                  before.rawItemCountText == "\(before.rawRows.count) Events" || (before.rawRows.count == 1 && before.rawItemCountText == "1 Event") else {
++                throw Failure("event_coverage_unavailable")
++            }
++            let row = before.rawRows[index]
++            let num = AXColumnID(id: "Num")
++            guard row[AXColumnID(id: "Status")]?.valueDescription == "Note",
++                  row[num]?.sliderValue == Double(old) else { throw Failure("expected_note_missing") }
++            let steps = try EventListReadbackCollector.editObservedPitch(
++                window: held.window, rowIndex: index, expectedRow: row, pitch: pitch,
++                validate: validate, willWrite: { wroteNote = true }, runtime: runtime)
++            try validate()
++            let after = try SelectedRegionEventListReader.readProduction(runtime: runtime)
++            try validate()
++            var expected = before.rawRows
++            expected[index][num] = RawCell(sliderValue: Double(pitch))
++            guard after.rawRows == expected, after.rawRegionPath == before.rawRegionPath,
++                  after.stableFilterStates == before.stableFilterStates,
++                  after.rawItemCountText == before.rawItemCountText, after.rowSelectionRestored else {
++                throw Failure("full_event_diff_mismatch_do_not_save")
++            }
++            guard var result = try JSONSerialization.jsonObject(with: Data(SelectedRegionEventListReader.responseJSON(after).utf8)) as? [String: Any] else { throw Failure("encoding_failed") }
++            result["operation"] = "midi.edit_prepared_note_pitch"
++            result["project_path"] = held.target.projectPath
++            result["raw_pitch_diff_verified"] = true
++            result["other_raw_events_preserved"] = true
++            result["pitch_write_count"] = steps
++            result["musical_event_write_attempted"] = wroteNote
++            result["saved"] = false
++            return HonestContract.jsonString(result)
++        } catch {
++            return HonestContract.jsonString([
++                "operation": "midi.edit_prepared_note_pitch", "success": false, "state": "C",
++                "reason": (error as? Failure)?.reason ?? String(describing: error),
++                "musical_event_write_attempted": wroteNote, "safe_to_retry": false,
++                "saved": false, "note": "Do not save or repeat automatically. Reobserve the copy."
++            ])
++        }
++    }
++}
+diff --git a/Sources/LogicProMCP/MIDIReadback/ObservedRegionMove.swift b/Sources/LogicProMCP/MIDIReadback/ObservedRegionMove.swift
+new file mode 100644
+index 0000000..c2b8b4a
+--- /dev/null
++++ b/Sources/LogicProMCP/MIDIReadback/ObservedRegionMove.swift
+@@ -0,0 +1,412 @@
++import ApplicationServices
++import Foundation
++import MCP
++
++/// An exact whole-bar move, owned by the prepared physical Arrange region.
++/// Global menu activation requires exclusive region selection and Arrange focus.
++enum ObservedRegionMove {
++    typealias Failure = ObservedPitchEdit.Failure
++    struct Entry: @unchecked Sendable {
++        let item: AXUIElement
++        let info: RegionInfo
++    }
++    final class Attempt: @unchecked Sendable {
++        private let lock = NSLock()
++        private var value = false
++        func mark() { lock.lock(); value = true; lock.unlock() }
++        var attempted: Bool { lock.lock(); defer { lock.unlock() }; return value }
++    }
++    struct PositionControls: @unchecked Sendable {
++        let bar: AXUIElement
++        let beat: AXUIElement
++    }
++    struct FocusOwner: @unchecked Sendable {
++        let element: AXUIElement
++    }
++
++    static func arrangeOwners(window: AXUIElement, region: AXUIElement,
++                              runtime: AXHelpers.Runtime) -> [AXUIElement] {
++        let containers = ["AXGroup", "AXSplitGroup", "AXScrollArea", "AXTabGroup"].flatMap {
++            AXHelpers.findAllDescendants(of: window, role: $0, maxDepth: 8, runtime: runtime)
++        }
++        let candidates = containers.filter { container in
++            let named = AXHelpers.getTitle(container, runtime: runtime) == "Tracks"
++                || AXHelpers.getDescription(container, runtime: runtime) == "Tracks"
++            let selectedTab: String? = AXHelpers.getRole(container, runtime: runtime) == "AXTabGroup"
++                ? AXHelpers.getAttribute(container, kAXValueAttribute, runtime: runtime) : nil
++            guard named || selectedTab == "Tracks" else { return false }
++            return AXHelpers.findAllDescendants(of: container, role: "AXLayoutItem", maxDepth: 14, runtime: runtime)
++                .contains { CFEqual($0, region) }
++        }
++        // Logic exposes nested Tracks wrappers. They are one editor only if
++        // every pair is physically nested; sibling aliases remain ambiguous.
++        func contains(_ outer: AXUIElement, _ inner: AXUIElement) -> Bool {
++            AXHelpers.findAllDescendants(of: outer, role: AXHelpers.getRole(inner, runtime: runtime),
++                                         maxDepth: 14, runtime: runtime).contains { CFEqual($0, inner) }
++        }
++        guard candidates.count <= 4 else { return [] }
++        for i in candidates.indices {
++            for j in candidates.indices where j > i {
++                guard contains(candidates[i], candidates[j]) != contains(candidates[j], candidates[i]) else { return [] }
++            }
++        }
++        return candidates.sorted { contains($1, $0) }
++    }
++
++    static func boundArrangeFocus(_ focus: AXUIElement, owner: AXUIElement, window: AXUIElement,
++                                  region: AXUIElement, runtime: AXHelpers.Runtime) -> Bool {
++        focusMatches(focus, owner: owner, region: region,
++                     current: arrangeOwners(window: window, region: region, runtime: runtime))
++    }
++
++    static func focusMatches(_ focus: AXUIElement, owner: AXUIElement, region: AXUIElement,
++                             current: [AXUIElement]) -> Bool {
++        guard current.first.map({ CFEqual($0, owner) }) == true else { return false }
++        return CFEqual(focus, region) || current.contains { CFEqual($0, focus) }
++    }
++
++    static func exclusiveSelection(_ items: [AXUIElement], target: AXUIElement,
++                                   runtime: AXHelpers.Runtime) -> Bool {
++        guard items.filter({ CFEqual($0,target) }).count == 1 else { return false }
++        for item in items {
++            let read: Result<NSNumber?, AXHelpers.AXStatusError> = AXHelpers.getAttributeResult(
++                item, kAXSelectedAttribute, runtime: runtime)
++            guard case .success(.some(let flag)) = read,
++                  flag.boolValue == CFEqual(item,target) else { return false }
++        }
++        return true
++    }
++
++    static func advance(from initial: Int, to target: Int, range: ClosedRange<Int>, limit: Int = 512,
++                        read: () throws -> Int, write: (Int) throws -> Void,
++                        validate: () throws -> Void) throws -> Int {
++        guard range.contains(initial), range.contains(target), limit > 0 else { throw Failure("invalid_position_step") }
++        var current = initial
++        var writes = 0
++        while current != target {
++            try validate()
++            guard try read() == current, writes < limit else { throw Failure("position_changed_or_step_limit") }
++            try write(target); writes += 1
++            try validate()
++            let next = try read()
++            guard next == target || next == current + (target > current ? 1 : -1) else {
++                throw Failure("unexpected_position_step")
++            }
++            current = next
++        }
++        try validate()
++        guard try read() == target else { throw Failure("position_changed_after_seek") }
++        return writes
++    }
++
++    static func advanceRebinding<Control>(to target: Int, range: ClosedRange<Int>,
++                                         resolve: () throws -> Control, read: (Control) throws -> Int,
++                                         write: (Control, Int) throws -> Void,
++                                         validate: () throws -> Void) throws -> Int {
++        let initial = try read(resolve())
++        var observed = initial
++        return try advance(from: initial, to: target, range: range, read: {
++            observed = try read(resolve())
++            return observed
++        }, write: { requested in
++            let fresh = try resolve()
++            guard try read(fresh) == observed else { throw Failure("position_changed_before_rebound_write") }
++            try write(fresh, requested)
++        }, validate: validate)
++    }
++
++    private static func writePermitted() -> Bool {
++        guard !Task.isCancelled else { return false }
++        guard let context = OperationTraceContext.current else { return true }
++        guard !context.cancellationRequested(), context.deadline.map({ ContinuousClock.now < $0 }) ?? true else { return false }
++        return !context.mutationGateAcquired || context.ownsGate()
++    }
++
++    static func verifyShift(before: [RawEventRow], after: [RawEventRow], bars: Int) throws {
++        guard bars != 0, before.count == after.count else { throw Failure("event_count_or_shift_invalid") }
++        let position = AXColumnID(id: "Position")
++        for (old, new) in zip(before, after) {
++            guard let a = old[position], let b = new[position],
++                  let oldText = a.valueDescription, let newText = b.valueDescription else {
++                throw Failure("event_position_unavailable")
++            }
++            func parts(_ text: String) -> [Int]? {
++                let words = text.split(whereSeparator: { $0.isWhitespace })
++                let values = words.compactMap { Int($0) }
++                return words.count == 4 && values.count == 4 && values.allSatisfy({ $0 > 0 }) ? values : nil
++            }
++            guard var expectedParts = parts(oldText), let newParts = parts(newText),
++                  a.groupSliderValues == nil || a.groupSliderValues == expectedParts.map(Double.init) else {
++                throw Failure("event_position_components_disagree")
++            }
++            let (shiftedBar, overflow) = expectedParts[0].addingReportingOverflow(bars)
++            guard !overflow else { throw Failure("event_position_overflow") }
++            expectedParts[0] = shiftedBar
++            guard expectedParts == newParts, expectedParts[0] > 0,
++                  b.groupSliderValues == (a.groupSliderValues == nil ? nil : expectedParts.map(Double.init)) else {
++                throw Failure("event_shift_mismatch")
++            }
++            var expected = old
++            expected[position] = RawCell(sliderValue: a.sliderValue, valueDescription: newText,
++                                         groupSliderValues: a.groupSliderValues == nil ? nil : expectedParts.map(Double.init))
++            guard expected == new else { throw Failure("non_position_event_field_changed") }
++        }
++    }
++
++    static func execute(params: [String: Value], runtime: AXLogicProElements.Runtime = .production,
++                        activateLogic: @Sendable () -> Bool = ProcessUtils.Runtime.production.activateLogicPro) async -> String {
++        let attempt = Attempt()
++        let navigation = Attempt()
++        var diagnostics: [String: Any] = [:]
++        do {
++            guard Set(params.keys) == ["preparation_id", "start_bar"],
++                  case .string(let id) = params["preparation_id"],
++                  case .int(let start) = params["start_bar"], (1...9999).contains(start),
++                  let held = ObservedPitchEdit.consume(id) else { throw Failure("invalid_or_expired_move_preparation") }
++            let delta = start - held.target.startBar
++            guard delta != 0, (1...9999).contains(held.target.endBar + delta),
++                  case .success(let initial) = AccessibilityChannel.enumerateRegionItems(runtime: runtime),
++                  initial.coversWholeArrangement,
++                  initial.regions.filter({ $0.info.name == held.target.name }).count == 1 else {
++                throw Failure("ambiguous_or_invalid_region_move")
++            }
++            let entries = initial.regions.map { Entry(item: $0.item, info: $0.info) }
++            let expectedPID = runtime.logicProPID()
++            @Sendable func requireKeyboardOwnership() throws {
++                guard !AXLogicProElements.dialogPresenceReason(runtime: runtime).isBlocked else {
++                    throw Failure("blocking_logic_dialog")
++                }
++                guard let pid = expectedPID, runtime.logicProPID() == pid,
++                      let observation = runtime.observeFrontmost?(), observation.isReady,
++                      observation.keyboardOwnerPID == pid,
++                      observation.focusedApplicationPID == pid else {
++                    throw Failure("logic_keyboard_ownership_unavailable")
++                }
++            }
++            diagnostics["keyboard_ownership_before"] = runtime.observeFrontmost?().diagnostic
++            // Opening a project can leave Finder in front. Acquire Logic once
++            // before reading the baseline; never steal focus back mid-edit.
++            guard writePermitted(), expectedPID != nil,
++                  let observe = runtime.observeFrontmost,
++                  runtime.logicProPID() == expectedPID,
++                  !AXLogicProElements.dialogPresenceReason(runtime: runtime).isBlocked else {
++                throw Failure("logic_activation_precondition_failed")
++            }
++            let foreground = FrontmostGate.prepareObserved(
++                observe: observe, isFrontmost: { false },
++                activate: activateLogic, sleepMicros: { usleep($0) })
++            diagnostics["foreground_preparation"] = foreground.preparation.rawValue
++            diagnostics["keyboard_ownership_after_activation"] = foreground.observation?.diagnostic
++            guard foreground.preparation.isReady else { throw Failure("logic_activation_not_verified") }
++            try requireKeyboardOwnership()
++            @Sendable func validate(moved: Bool) throws {
++                guard !AXLogicProElements.dialogPresenceReason(runtime: runtime).isBlocked else {
++                    throw Failure("blocking_logic_dialog")
++                }
++                guard writePermitted(),
++                      let window = AXLogicProElements.mainWindow(runtime: runtime), CFEqual(window, held.window),
++                      let document: String = AXHelpers.getAttribute(window, kAXDocumentAttribute, runtime: runtime.ax),
++                      let url = URL(string: document), url.isFileURL,
++                      url.standardizedFileURL.resolvingSymlinksInPath().path == held.target.projectPath,
++                      (AXHelpers.getAttribute(window, "AXSheets", runtime: runtime.ax) as [AXUIElement]? ?? []).isEmpty,
++                      case .success(let inventory) = AccessibilityChannel.enumerateRegionItems(runtime: runtime),
++                      inventory.coversWholeArrangement, inventory.regions.count == entries.count,
++                      let selection = AccessibilityChannel.selectedRegionObservation(from: inventory, runtime: runtime.ax),
++                      selection.scopeComplete, selection.selected.count == 1 else { throw Failure("move_target_custody_lost") }
++                let selected = selection.selected[0]
++                let offset = moved ? delta : 0
++                guard selected.name == held.target.name, selected.trackIndex == held.target.trackIndex,
++                      selected.kind == "midi", selected.startBar == held.target.startBar + offset,
++                      selected.endBar == held.target.endBar + offset else { throw Failure("move_selection_or_bounds_changed") }
++                for entry in entries {
++                    let matches = inventory.regions.filter { CFEqual($0.item, entry.item) }
++                    guard matches.count == 1, let current = matches.first else { throw Failure("physical_arrangement_changed") }
++                    let shift = CFEqual(entry.item, held.region) ? offset : 0
++                    guard current.info.name == entry.info.name, current.info.kind == entry.info.kind,
++                          current.info.trackIndex == entry.info.trackIndex,
++                          current.info.startBar == entry.info.startBar + shift,
++                          current.info.endBar == entry.info.endBar + shift else { throw Failure("other_region_or_bounds_changed") }
++                }
++            }
++            @Sendable func stopped() -> Bool {
++                guard let play = AXHelpers.findDescendant(of: held.window, identifier: "controlBar/playButton", maxDepth: 5, runtime: runtime.ax),
++                      let record = AXHelpers.findDescendant(of: held.window, identifier: "controlBar/recordButton", maxDepth: 5, runtime: runtime.ax),
++                      AXValueExtractors.extractButtonState(play, runtime: runtime.ax) == false,
++                      AXValueExtractors.extractButtonState(record, runtime: runtime.ax) == false else { return false }
++                return true
++            }
++            @Sendable func controls() throws -> PositionControls {
++                guard let currentWindow = AXLogicProElements.mainWindow(runtime: runtime), CFEqual(currentWindow, held.window),
++                      let toolbar = AXLogicProElements.getTransportBar(runtime: runtime),
++                      let role = AXHelpers.getRole(toolbar, runtime: runtime.ax),
++                      AXHelpers.findAllDescendants(of: held.window, role: role, maxDepth: 6, runtime: runtime.ax)
++                        .contains(where: { CFEqual($0, toolbar) }) else { throw Failure("position_toolbar_unavailable") }
++                let groups = AXHelpers.findAllDescendants(of: toolbar, role: kAXGroupRole, maxDepth: 5, runtime: runtime.ax)
++                    .filter { AXHelpers.getDescription($0, runtime: runtime.ax) == "Playhead Position" }
++                guard groups.count == 1, let group = groups.first else { throw Failure("position_display_ambiguous") }
++                let sliders = AXHelpers.getChildren(group, runtime: runtime.ax)
++                let bars = sliders.filter { AXHelpers.getDescription($0, runtime: runtime.ax) == "bar" }
++                let beats = sliders.filter { AXHelpers.getDescription($0, runtime: runtime.ax) == "beat" }
++                guard bars.count == 1, beats.count == 1 else { throw Failure("position_controls_unavailable") }
++                return PositionControls(bar: bars[0], beat: beats[0])
++            }
++            @Sendable func number(_ control: AXUIElement) throws -> Int {
++                guard let value = AXValueExtractors.extractSliderValue(control, runtime: runtime.ax),
++                      value.isFinite, value.rounded() == value, (1...9999).contains(value) else {
++                    throw Failure("position_value_unavailable")
++                }
++                return Int(value)
++            }
++            @Sendable func playheadMatches() -> Bool {
++                guard stopped(), let c = try? controls() else { return false }
++                return (try? number(c.bar)) == start && (try? number(c.beat)) == 1
++            }
++            func seek(isBar: Bool, target: Int) throws -> Int {
++                try advanceRebinding(to: target, range: isBar ? 1...9999 : 1...16, resolve: {
++                    let fresh = try controls()
++                    return isBar ? fresh.bar : fresh.beat
++                }, read: number, write: { control, value in
++                    guard writePermitted(), stopped() else { throw Failure("position_write_custody_lost") }
++                    try requireKeyboardOwnership()
++                    navigation.mark()
++                    guard AXHelpers.setAttribute(control, kAXValueAttribute, NSNumber(value: value), runtime: runtime.ax) else {
++                        throw Failure("position_write_outcome_unknown")
++                    }
++                    Thread.sleep(forTimeInterval: 0.05)
++                }, validate: { try validate(moved: false) })
++            }
++            func setEventList(open: Bool, moved: Bool) async throws {
++                try validate(moved: moved)
++                guard let button = AXHelpers.findDescendant(of: held.window, identifier: "controlBar/listEditorsButton", maxDepth: 5, runtime: runtime.ax),
++                      AXValueExtractors.extractButtonState(button, runtime: runtime.ax) == !open,
++                      writePermitted(), AXHelpers.performAction(button, kAXPressAction, runtime: runtime.ax) else {
++                    throw Failure("event_list_refresh_failed")
++                }
++                try await Task.sleep(nanoseconds: 200_000_000)
++                try validate(moved: moved)
++                guard let fresh = AXHelpers.findDescendant(of: held.window, identifier: "controlBar/listEditorsButton", maxDepth: 5, runtime: runtime.ax),
++                      AXValueExtractors.extractButtonState(fresh, runtime: runtime.ax) == open else {
++                    throw Failure("event_list_refresh_not_observed")
++                }
++            }
++            try validate(moved: false)
++            let before = try SelectedRegionEventListReader.readProduction(runtime: runtime)
++            diagnostics["before"] = try JSONSerialization.jsonObject(with: Data(SelectedRegionEventListReader.responseJSON(before).utf8))
++            let filters = ["noteEvents", "controller", "programChange", "pitchBend", "aftertouch", "polyAftertouch", "systemExclusive"]
++            guard before.rawRows == held.baseline.rawRows,
++                  before.rawRegionPath == held.target.name,
++                  before.rowSelectionRestored,
++                  before.stableFilterStates == held.baseline.stableFilterStates,
++                  filters.allSatisfy({ before.stableFilterStates?[$0] == true }),
++                  before.rawItemCountText == "\(before.rawRows.count) Events" || (before.rawRows.count == 1 && before.rawItemCountText == "1 Event") else {
++                throw Failure("move_baseline_changed_or_incomplete")
++            }
++            try validate(moved: false)
++            guard stopped() else { throw Failure("transport_must_be_stopped") }
++            try requireKeyboardOwnership()
++            let beatWrites = try seek(isBar: false, target: 1)
++            let barWrites = try seek(isBar: true, target: start)
++            guard playheadMatches() else { throw Failure("requested_playhead_or_stopped_state_unavailable") }
++            // A long, scrolled Event List can retain AX focus even when the
++            // selected Arrange region accepts AXFocused=true. Close that
++            // editor before acquiring focus; reopen after moving for fresh data.
++            try await setEventList(open: false, moved: false)
++            try validate(moved: false)
++            // Logic's AXParent chain can stop at a track LayoutArea. Bind
++            // downward from the held window, through Tracks, to the physical
++            // region instead of assuming every parent edge is exposed.
++            let owners = arrangeOwners(window: held.window, region: held.region, runtime: runtime.ax)
++            guard let arrangeElement = owners.first else {
++                diagnostics["focus_owner_candidates"] = AXHelpers.findAllDescendants(of: held.window, maxDepth: 8, runtime: runtime.ax)
++                    .filter { element in
++                        let role = AXHelpers.getRole(element, runtime: runtime.ax) ?? ""
++                        return ["AXGroup", "AXSplitGroup", "AXScrollArea", "AXTabGroup", "AXLayoutArea"].contains(role)
++                    }.map { element -> [String: String] in
++                        var fields: [String: String] = [:]
++                        for key in [kAXRoleAttribute, kAXTitleAttribute, kAXDescriptionAttribute, kAXIdentifierAttribute, kAXRoleDescriptionAttribute, kAXValueAttribute] {
++                            if let value: String = AXHelpers.getAttribute(element, key, runtime: runtime.ax) { fields[key] = value }
++                        }
++                        return fields
++                    }
++                throw Failure("arrange_focus_owner_unavailable")
++            }
++            let arrange = FocusOwner(element: arrangeElement)
++            @Sendable func focusedOnTarget() -> Bool {
++                let current = arrangeOwners(window: held.window, region: held.region, runtime: runtime.ax)
++                guard let button = AXHelpers.findDescendant(of: held.window, identifier: "controlBar/listEditorsButton", maxDepth: 5, runtime: runtime.ax),
++                      AXValueExtractors.extractButtonState(button, runtime: runtime.ax) == false,
++                      let app = AXLogicProElements.appRoot(runtime: runtime),
++                      let focus: AXUIElement = AXHelpers.getAttribute(app, kAXFocusedUIElementAttribute, runtime: runtime.ax) else { return false }
++                // Read focus LAST, after any structural AX traversal.
++                return focusMatches(focus, owner: arrange.element, region: held.region, current: current)
++            }
++            @Sendable func acquireArrangeFocus() async throws {
++                guard writePermitted() else { throw Failure("arrange_focus_custody_lost") }
++                if focusedOnTarget() { return }
++                guard AXHelpers.setAttribute(arrange.element, kAXFocusedAttribute, kCFBooleanTrue, runtime: runtime.ax) else {
++                    throw Failure("arrange_focus_acquisition_failed")
++                }
++                try await Task.sleep(nanoseconds: 50_000_000)
++                guard focusedOnTarget() else { throw Failure("arrange_focus_not_verified") }
++            }
++            try await acquireArrangeFocus()
++            guard focusedOnTarget() else { throw Failure("arrange_focus_not_verified") }
++            let result = await AccessibilityChannel.defaultMoveSelectedRegionToPlayhead(runtime: runtime, executeScript: { script in
++                do {
++                    try validate(moved: false)
++                    guard playheadMatches() else { throw Failure("move_playhead_changed") }
++                    // Some AX Help reads used by Arrange enumeration move focus.
++                    // Acquire after all those reads, then check focus last.
++                    try await acquireArrangeFocus()
++                    try requireKeyboardOwnership()
++                    // Acquiring editor focus can change selection or location.
++                    // Check both AFTER acquisition without another Help read.
++                    guard playheadMatches() else { throw Failure("move_playhead_changed_after_focus") }
++                    guard exclusiveSelection(entries.map(\.item), target: held.region, runtime: runtime.ax) else {
++                        throw Failure("move_selection_changed_after_focus")
++                    }
++                    guard writePermitted(), focusedOnTarget() else { throw Failure("move_focus_changed_before_menu") }
++                    attempt.mark()
++                    return await AppleScriptChannel.executeAppleScript(script)
++                } catch { return .error("Prepared move refused before its menu: \(error)") }
++            })
++            diagnostics["menu_result"] = String(describing: result)
++            guard case .success = result else { throw Failure("move_menu_failed_do_not_retry") }
++            try validate(moved: true)
++            // Reopening also invalidates Logic 13's stale absolute positions.
++            try await setEventList(open: true, moved: true)
++            let after = try SelectedRegionEventListReader.readProduction(runtime: runtime)
++            diagnostics["after"] = try JSONSerialization.jsonObject(with: Data(SelectedRegionEventListReader.responseJSON(after).utf8))
++            try validate(moved: true)
++            guard after.rowSelectionRestored, after.rawRegionPath == before.rawRegionPath,
++                  after.stableFilterStates == before.stableFilterStates,
++                  after.rawItemCountText == before.rawItemCountText,
++                  after.liveHeaderTitles == before.liveHeaderTitles else { throw Failure("move_event_context_changed") }
++            try verifyShift(before: before.rawRows, after: after.rawRows, bars: delta)
++            guard var response = try JSONSerialization.jsonObject(with: Data(SelectedRegionEventListReader.responseJSON(after).utf8)) as? [String: Any] else { throw Failure("move_encoding_failed") }
++            response["operation"] = "midi.move_prepared_region"
++            response["project_path"] = held.target.projectPath
++            response["raw_bar_shift_verified"] = true
++            response["bar_shift"] = delta
++            response["other_raw_fields_preserved"] = true
++            response["other_observed_region_bounds_preserved"] = true
++            response["musical_event_write_attempted"] = attempt.attempted
++            response["playhead_navigation_attempted"] = navigation.attempted
++            response["playhead_value_writes"] = beatWrites + barWrites
++            response["event_list_refreshed_after_move"] = true
++            response["arrange_focus_owner_verified"] = true
++            response["arrange_focus_container_count"] = owners.count
++            response["saved"] = false
++            return HonestContract.jsonString(response)
++        } catch {
++            return HonestContract.jsonString([
++                "operation": "midi.move_prepared_region", "success": false, "state": "C",
++                "reason": (error as? Failure)?.reason ?? String(describing: error),
++                "musical_event_write_attempted": attempt.attempted,
++                "playhead_navigation_attempted": navigation.attempted,
++                "diagnostics": diagnostics,
++                "safe_to_retry": false, "saved": false,
++            ])
++        }
++    }
++}
+diff --git a/Sources/LogicProMCP/MIDIReadback/RegionEventPreparation.swift b/Sources/LogicProMCP/MIDIReadback/RegionEventPreparation.swift
+new file mode 100644
+index 0000000..723a0c5
+--- /dev/null
++++ b/Sources/LogicProMCP/MIDIReadback/RegionEventPreparation.swift
+@@ -0,0 +1,146 @@
++import ApplicationServices
++import Foundation
++import MCP
++
++/// Explicit UI navigation, separate from the read-only selected-region observer.
++/// Selects a uniquely observed target and opens its Event List. It does not
++/// authorize note writes or promote raw observations to canonical MIDI proof.
++enum RegionEventPreparation {
++    struct Target: Equatable {
++        let projectPath: String
++        let name: String
++        let trackIndex: Int
++        let startBar: Int
++        let endBar: Int
++
++        init(params: [String: Value]) throws {
++            let keys: Set<String> = ["project_path", "region_name", "track_index", "start_bar", "end_bar"]
++            guard Set(params.keys) == keys,
++                  case .string(let path) = params["project_path"], path.hasPrefix("/"),
++                  URL(fileURLWithPath: path).pathExtension == "logicx",
++                  case .string(let name) = params["region_name"], !name.isEmpty,
++                  case .int(let track) = params["track_index"], track >= 0,
++                  case .int(let start) = params["start_bar"], start >= 1,
++                  case .int(let end) = params["end_bar"], end > start else {
++                throw Failure("invalid_target")
++            }
++            self.projectPath = URL(fileURLWithPath: path).standardizedFileURL.resolvingSymlinksInPath().path
++            self.name = name; self.trackIndex = track; self.startBar = start; self.endBar = end
++        }
++
++        func matches(_ region: SelectedRegionEventListReader.RegionIdentity) -> Bool {
++            region.name == name && region.trackIndex == trackIndex
++                && region.startBar == startBar && region.endBar == endBar && region.kind == "midi"
++        }
++    }
++    struct Failure: Error { let reason: String; init(_ reason: String) { self.reason = reason } }
++
++    static func prepare(params: [String: Value], runtime: AXLogicProElements.Runtime = .production) async -> String {
++        var actions = 0
++        do {
++            let target = try Target(params: params)
++            guard let window = AXLogicProElements.mainWindow(runtime: runtime) else { throw Failure("window_unavailable") }
++            func checkWindow() throws {
++                guard let current = AXLogicProElements.mainWindow(runtime: runtime), CFEqual(current, window),
++                      let document: String = AXHelpers.getAttribute(window, kAXDocumentAttribute, runtime: runtime.ax),
++                      let url = URL(string: document), url.isFileURL,
++                      url.standardizedFileURL.resolvingSymlinksInPath().path == target.projectPath else {
++                    throw Failure("project_or_window_changed")
++                }
++                let sheets: [AXUIElement] = AXHelpers.getAttribute(window, "AXSheets", runtime: runtime.ax) ?? []
++                guard sheets.isEmpty else { throw Failure("blocking_sheet") }
++            }
++            try checkWindow()
++            guard case .success(let inventory) = AccessibilityChannel.enumerateRegionItems(runtime: runtime),
++                  inventory.coversWholeArrangement else { throw Failure("arrange_inventory_incomplete") }
++            let matches = inventory.regions.filter {
++                $0.info.name == target.name && $0.info.trackIndex == target.trackIndex
++                    && $0.info.startBar == target.startBar && $0.info.endBar == target.endBar && $0.info.kind == "midi"
++            }
++            guard matches.count == 1, let selected = matches.first else { throw Failure("region_missing_or_ambiguous") }
++            // Read every selection before any navigation; unknown is not unselected.
++            guard AccessibilityChannel.selectedRegionObservation(from: inventory, runtime: runtime.ax) != nil else {
++                throw Failure("selection_unreadable")
++            }
++            for entry in inventory.regions {
++                try checkWindow()
++                let desired = CFEqual(entry.item, selected.item)
++                let current: Bool? = AXHelpers.getAttribute(entry.item, kAXSelectedAttribute, runtime: runtime.ax)
++                if current != desired {
++                    actions += 1
++                    guard AXHelpers.setAttribute(entry.item, kAXSelectedAttribute,
++                        desired ? kCFBooleanTrue : kCFBooleanFalse, runtime: runtime.ax) else {
++                        throw Failure("region_selection_write_failed")
++                    }
++                }
++            }
++            try checkWindow()
++            guard let selection = AccessibilityChannel.selectedRegionObservation(runtime: runtime),
++                  selection.scopeComplete, selection.selected.count == 1,
++                  target.matches(selection.selected[0]) else { throw Failure("region_selection_not_verified") }
++
++            func listButton() -> AXUIElement? {
++                AXHelpers.findDescendant(of: window, identifier: "controlBar/listEditorsButton", maxDepth: 5, runtime: runtime.ax)
++            }
++            func isOpen(_ button: AXUIElement) -> Bool {
++                let value: NSNumber? = AXHelpers.getAttribute(button, kAXValueAttribute, runtime: runtime.ax)
++                return value?.boolValue == true
++            }
++            guard let button = listButton() else { throw Failure("list_button_unavailable") }
++            if !isOpen(button) {
++                try checkWindow(); actions += 1
++                _ = AXHelpers.performAction(button, kAXPressAction, runtime: runtime.ax)
++                try await Task.sleep(nanoseconds: 200_000_000)
++                try checkWindow()
++                if !isOpen(button) {
++                    // Logic 13 disables the List Editors in a narrow window.
++                    // Use the window's native zoom button, never screen coordinates.
++                    guard let zoom: AXUIElement = AXHelpers.getAttribute(window, kAXZoomButtonAttribute, runtime: runtime.ax) else {
++                        throw Failure("list_unavailable_and_window_zoom_missing")
++                    }
++                    actions += 1
++                    guard AXHelpers.performAction(zoom, kAXPressAction, runtime: runtime.ax) else { throw Failure("window_zoom_failed") }
++                    try await Task.sleep(nanoseconds: 200_000_000)
++                    try checkWindow()
++                    guard let fresh = listButton() else { throw Failure("list_button_lost") }
++                    actions += 1
++                    _ = AXHelpers.performAction(fresh, kAXPressAction, runtime: runtime.ax)
++                    try await Task.sleep(nanoseconds: 200_000_000)
++                }
++            }
++            try checkWindow()
++            guard let fresh = listButton(), isOpen(fresh) else { throw Failure("event_list_did_not_open") }
++            let read = try SelectedRegionEventListReader.readProduction(runtime: runtime)
++            try checkWindow()
++            guard target.matches(read.selectedRegionObservation) else { throw Failure("selection_changed") }
++            guard read.rawRegionPath.trimmingCharacters(in: .whitespacesAndNewlines) == target.name else { throw Failure("event_list_path_mismatch") }
++            guard var result = try JSONSerialization.jsonObject(with: Data(SelectedRegionEventListReader.responseJSON(read).utf8)) as? [String: Any] else { throw Failure("observation_encoding_failed") }
++            if let id = ObservedPitchEdit.retain(target: target, window: window, region: selected.item, baseline: read) {
++                result["preparation_id"] = id
++                result["preparation_expires_seconds"] = 300
++            }
++            result["operation"] = "midi.prepare_region_events"
++            result["project_path"] = target.projectPath
++            result["ui_actions_attempted"] = actions
++            result["selection_verified"] = true
++            result["selection_left_on_target"] = true
++            result["musical_event_write_attempted"] = false
++            // Observed affordances for subsequent, separately qualified region
++            // actuators. These diagnostics never authorize a global menu/key.
++            result["target_diagnostics"] = [
++                "actions": runtime.ax.actionNames(selected.item),
++                "focus_settable": runtime.ax.attributeIsSettable(selected.item, kAXFocusedAttribute as String) as Any? ?? NSNull(),
++                "value_settable": runtime.ax.attributeIsSettable(selected.item, kAXValueAttribute as String) as Any? ?? NSNull(),
++            ]
++            return HonestContract.jsonString(result)
++        } catch {
++            return HonestContract.jsonString([
++                "success": false, "state": "C", "operation": "midi.prepare_region_events",
++                "reason": (error as? Failure)?.reason ?? String(describing: error),
++                "ui_actions_attempted": actions, "musical_event_write_attempted": false,
++                "safe_to_retry": false,
++                "note": "UI selection or window layout may have changed; reobserve before continuing."
++            ])
++        }
++    }
++}
+diff --git a/Sources/LogicProMCP/MIDIReadback/SelectedRegionEventListReader.swift b/Sources/LogicProMCP/MIDIReadback/SelectedRegionEventListReader.swift
+index 1e5a6de..addb17b 100644
+--- a/Sources/LogicProMCP/MIDIReadback/SelectedRegionEventListReader.swift
++++ b/Sources/LogicProMCP/MIDIReadback/SelectedRegionEventListReader.swift
+@@ -29,6 +29,7 @@ enum SelectedRegionEventListReader {
+         let liveHeaderTitles: [String]
+         let rawItemCountText: String
+         let rawRegionPath: String
++        let stableFilterStates: [String: Bool]?
+         let observedRowsContentStable: Bool
+         let canonicalNotesComplete: Bool
+         let partialReason: PartialReason
+@@ -42,6 +43,7 @@ enum SelectedRegionEventListReader {
+             liveHeaderTitles: [String],
+             rawItemCountText: String,
+             rawRegionPath: String,
++            stableFilterStates: [String: Bool]? = nil,
+             observedRowsContentStable: Bool,
+             canonicalNotesComplete: Bool,
+             partialReason: PartialReason,
+@@ -54,6 +56,7 @@ enum SelectedRegionEventListReader {
+             self.liveHeaderTitles = liveHeaderTitles
+             self.rawItemCountText = rawItemCountText
+             self.rawRegionPath = rawRegionPath
++            self.stableFilterStates = stableFilterStates
+             self.observedRowsContentStable = observedRowsContentStable
+             self.canonicalNotesComplete = canonicalNotesComplete
+             self.partialReason = partialReason
+@@ -76,6 +79,7 @@ enum SelectedRegionEventListReader {
+         let refusal: Refusal
+         let rowSelectionWriteAttempted: Bool
+         let rowSelectionRestored: Bool
++        var observationError: String? = nil
+     }
+ 
+     static func readProduction(
+@@ -117,6 +121,7 @@ enum SelectedRegionEventListReader {
+             liveHeaderTitles: observation.liveHeaderTitles,
+             rawItemCountText: observation.rawItemCountText,
+             rawRegionPath: observation.rawRegionPath,
++            stableFilterStates: observation.stableFilterStates,
+             observedRowsContentStable: true,
+             canonicalNotesComplete: false,
+             partialReason: .identityTimingAndTraversalUnproven,
+@@ -171,7 +176,8 @@ enum SelectedRegionEventListReader {
+             throw ReadAttemptFailure(
+                 refusal: .eventListObservationUnavailable,
+                 rowSelectionWriteAttempted: attempt.rowSelectionWriteAttempted,
+-                rowSelectionRestored: attempt.rowSelectionRestored
++                rowSelectionRestored: attempt.rowSelectionRestored,
++                observationError: String(describing: error)
+             )
+         }
+         guard observation.rows == observation.verificationRows else {
+@@ -188,6 +194,7 @@ enum SelectedRegionEventListReader {
+             liveHeaderTitles: observation.liveHeaderTitles,
+             rawItemCountText: observation.rawItemCountText,
+             rawRegionPath: observation.rawRegionPath,
++            stableFilterStates: observation.stableFilterStates,
+             observedRowsContentStable: true,
+             canonicalNotesComplete: false,
+             partialReason: .identityTimingAndTraversalUnproven,
+@@ -211,6 +218,15 @@ enum SelectedRegionEventListReader {
+                 output[entry.key.id] = cell
+             }
+         }
++        // Diagnostic candidates only: the English status label and controller
++        // number are observations, not proof that every CC64 row was harvested.
++        // Keep the original row data and do not interpret its musical timing.
++        let observedCC64 = result.rawRows.filter { row in
++            row[AXColumnID(id: "Status")]?.valueDescription == "Control"
++                && row[AXColumnID(id: "Num")]?.sliderValue == 64
++        }.count
++        let pathMatchesName = result.rawRegionPath.trimmingCharacters(in: .whitespacesAndNewlines)
++            == result.selectedRegionObservation.name.trimmingCharacters(in: .whitespacesAndNewlines)
+         return HonestContract.jsonString([
+             "success": true,
+             "verified": false,
+@@ -228,6 +244,12 @@ enum SelectedRegionEventListReader {
+             "live_header_titles": result.liveHeaderTitles,
+             "event_list_item_count_text": result.rawItemCountText,
+             "event_list_region_path": result.rawRegionPath,
++            "event_list_path_matches_selected_name": pathMatchesName,
++            "event_list_name_match_is_identity_proof": false,
++            "observed_english_cc64_candidate_count": observedCC64,
++            "cc64_candidate_count_is_complete": false,
++            "event_list_filter_states": result.stableFilterStates as Any? ?? NSNull(),
++            "event_list_filter_states_meaning": "raw_checkbox_values_only; visibility_and_completeness_unproven",
+             "observed_rows_content_stable": result.observedRowsContentStable,
+             "event_list_owner_proven": false,
+             "canonical_notes_complete": result.canonicalNotesComplete,
+@@ -257,7 +279,7 @@ enum SelectedRegionEventListReader {
+         default:
+             reason = "event_list_observation_unavailable"
+         }
+-        return HonestContract.jsonString([
++        var details: [String: Any] = [
+             "success": false,
+             "state": "C",
+             "error": "selected_region_event_read_unavailable",
+@@ -271,6 +293,13 @@ enum SelectedRegionEventListReader {
+             "write_attempted": attemptFailure?.rowSelectionWriteAttempted ?? false,
+             "row_selection_write_attempted": attemptFailure?.rowSelectionWriteAttempted ?? false,
+             "row_selection_restored": attemptFailure?.rowSelectionRestored ?? false,
+-        ])
++        ]
++        if case Refusal.selectedRegionCount(let count) = reportedError {
++            details["selected_region_count"] = count
++        }
++        if let observationError = attemptFailure?.observationError {
++            details["observation_error"] = observationError
++        }
++        return HonestContract.jsonString(details)
+     }
+ }
+diff --git a/Sources/LogicProMCP/Server/OperationRegistry.swift b/Sources/LogicProMCP/Server/OperationRegistry.swift
+index 5179c48..305d328 100644
+--- a/Sources/LogicProMCP/Server/OperationRegistry.swift
++++ b/Sources/LogicProMCP/Server/OperationRegistry.swift
+@@ -108,6 +108,9 @@ enum OperationID: String, CaseIterable, Codable, Sendable, Hashable {
+     case midiImportFile = "midi.import_file"
+     case midiExportTrackMIDI = "midi.export_track_midi"
+     case midiReadTrackNotes = "midi.read_track_notes"
++    case midiEditPreparedNotePitch = "midi.edit_prepared_note_pitch"
++    case midiMovePreparedRegion = "midi.move_prepared_region"
++    case midiPrepareRegionEvents = "midi.prepare_region_events"
+     case midiReadSelectedRegionEvents = "midi.read_selected_region_events"
+     case midiListPorts = "midi.list_ports"
+     case midiCreateVirtualPort = "midi.create_virtual_port"
+@@ -365,7 +368,7 @@ enum OperationRegistry {
+             "midi.send_note", "midi.send_chord", "midi.send_cc", "midi.send_program_change",
+             "midi.send_pitch_bend", "midi.send_aftertouch", "midi.send_sysex",
+             "midi.play_sequence", "midi.import_file", "midi.list_ports",
+-            "midi.export_track_midi", "midi.read_track_notes", "midi.read_selected_region_events",
++            "midi.export_track_midi", "midi.read_track_notes", "midi.read_selected_region_events", "midi.prepare_region_events", "midi.edit_prepared_note_pitch", "midi.move_prepared_region",
+             "midi.create_virtual_port", "midi.step_input", "midi.mmc_play", "midi.mmc_stop",
+             "midi.mmc_record", "midi.mmc_locate",
+         ],
+@@ -422,7 +425,7 @@ enum OperationRegistry {
+         ToolID.logicMidi.rawValue: [
+             "send_note", "send_chord", "send_cc", "send_program_change", "send_pitch_bend",
+             "send_aftertouch", "send_sysex", "play_sequence", "import_file", "list_ports",
+-            "export_track_midi", "read_track_notes", "read_selected_region_events",
++            "export_track_midi", "read_track_notes", "read_selected_region_events", "prepare_region_events", "edit_prepared_note_pitch", "move_prepared_region",
+             "create_virtual_port", "step_input", "mmc_play", "mmc_stop", "mmc_record",
+             "mmc_locate",
+         ],
+@@ -983,6 +986,9 @@ enum OperationRegistry {
+         (.midiExportTrackMIDI, "export_track_midi", Mutability.`mutating`, DeadlineClass.long, VerificationPolicy.readbackRequired, ["project_ref", "target_ref", "path", "allow_temporary_track_rename"]),
+         (.midiReadTrackNotes, "read_track_notes", Mutability.`mutating`, DeadlineClass.long, VerificationPolicy.readbackRequired, ["project_ref", "target_ref", "allow_temporary_track_rename"]),
+         (.midiReadSelectedRegionEvents, "read_selected_region_events", Mutability.readOnly, DeadlineClass.medium, VerificationPolicy.none, []),
++        (.midiPrepareRegionEvents, "prepare_region_events", Mutability.`mutating`, DeadlineClass.long, VerificationPolicy.none, ["project_path", "region_name", "track_index", "start_bar", "end_bar"]),
++        (.midiEditPreparedNotePitch, "edit_prepared_note_pitch", Mutability.`mutating`, DeadlineClass.long, VerificationPolicy.none, ["preparation_id", "row_index", "expected_pitch", "pitch"]),
++        (.midiMovePreparedRegion, "move_prepared_region", Mutability.`mutating`, DeadlineClass.long, VerificationPolicy.none, ["preparation_id", "start_bar"]),
+         (.midiListPorts, "list_ports", Mutability.readOnly, DeadlineClass.short, VerificationPolicy.none, []),
+         (.midiCreateVirtualPort, "create_virtual_port", Mutability.`mutating`, DeadlineClass.short, VerificationPolicy.none, ["name"]),
+         (.midiStepInput, "step_input", Mutability.`mutating`, DeadlineClass.short, VerificationPolicy.none, ["duration", "note"]),
+diff --git a/Sources/LogicProMCP/Workflows/WorkflowSkillCatalog.swift b/Sources/LogicProMCP/Workflows/WorkflowSkillCatalog.swift
+index 12ef191..49329c8 100644
+--- a/Sources/LogicProMCP/Workflows/WorkflowSkillCatalog.swift
++++ b/Sources/LogicProMCP/Workflows/WorkflowSkillCatalog.swift
+@@ -528,7 +528,7 @@ enum WorkflowSkillCatalog {
+             "send_note", "send_chord", "play_sequence", "send_cc",
+             "send_program_change", "send_pitch_bend", "send_aftertouch",
+             "send_sysex", "import_file", "list_ports", "create_virtual_port",
+-            "export_track_midi", "read_track_notes", "read_selected_region_events",
++            "export_track_midi", "read_track_notes", "read_selected_region_events", "prepare_region_events", "edit_prepared_note_pitch", "move_prepared_region",
+             "mmc_play", "mmc_stop", "mmc_record", "mmc_locate", "step_input",
+         ],
+         "logic_edit": [
+diff --git a/Tests/LogicProMCPTests/Issue302SelectedRegionEventListReaderTests.swift b/Tests/LogicProMCPTests/Issue302SelectedRegionEventListReaderTests.swift
+index d2b34f9..3ac290e 100644
+--- a/Tests/LogicProMCPTests/Issue302SelectedRegionEventListReaderTests.swift
++++ b/Tests/LogicProMCPTests/Issue302SelectedRegionEventListReaderTests.swift
+@@ -4,6 +4,32 @@ import Testing
+ @testable import LogicProMCP
+ 
+ @Suite struct Issue302SelectedRegionEventListReaderTests {
++    @Test func harvestRefusesContextDriftEvenWhenRowsCouldMatch() throws {
++        let filters = ["note": true, "controller": true]
++        try EventListReadbackCollector.validateHarvestContext(
++            pathBefore: "A", pathAfter: "A", countBefore: "122 Events", countAfter: "122 Events",
++            filtersBefore: filters, filtersAfter: filters)
++        for field in ["region_path", "item_count", "filters"] {
++            #expect(throws: EventListReadbackCollectorError.harvestContextChanged(field: field)) {
++                try EventListReadbackCollector.validateHarvestContext(
++                    pathBefore: "A", pathAfter: field == "region_path" ? "B" : "A",
++                    countBefore: "122 Events", countAfter: field == "item_count" ? "121 Events" : "122 Events",
++                    filtersBefore: filters,
++                    filtersAfter: field == "filters" ? ["note": true, "controller": false] : filters)
++            }
++        }
++    }
++
++    @Test func harvestRefusesMissingFilterEvidence() {
++        for before in [nil, ["note": true]] as [[String: Bool]?] {
++            #expect(throws: EventListReadbackCollectorError.filterEvidenceIncomplete(title: "harvest boundary")) {
++                try EventListReadbackCollector.validateHarvestContext(
++                    pathBefore: "A", pathAfter: "A", countBefore: "1 Event", countAfter: "1 Event",
++                    filtersBefore: before, filtersAfter: nil)
++            }
++        }
++    }
++
+     private actor EntryProbe {
+         private var entered = false
+ 
+@@ -98,6 +124,38 @@ import Testing
+         #expect(!result.canonicalNotesComplete)
+     }
+ 
++    @Test func filterStatesAreRawEvidenceAndDoNotProveCompleteness() throws {
++        let selection = SelectedRegionEventListReader.SelectionObservation(scopeComplete: true, selected: [Self.region])
++        let observed = EventListReadbackCollector.ProbeObservation(
++            liveHeaderTitles: [], rows: [Self.row()], verificationRows: [Self.row()],
++            firstRowCellChildren: [:], rawItemCountText: "1 Event", rawRegionPath: "Selected MIDI",
++            stableFilterStates: ["noteEvents": true, "controller": false]
++        )
++        let result = try SelectedRegionEventListReader.read(selection: { selection }, collect: { observed })
++        let body = try #require(sharedJSONObject(SelectedRegionEventListReader.responseJSON(result)))
++        let filters = try #require(body["event_list_filter_states"] as? [String: Bool])
++        #expect(filters["controller"] == false)
++        #expect(body["state"] as? String == "B")
++        #expect(body["event_list_owner_proven"] as? Bool == false)
++        #expect(body["canonical_notes_complete"] as? Bool == false)
++    }
++
++    @Test func candidatePedalCountAndNameMatchAreNeverCompletenessProof() throws {
++        let selection = SelectedRegionEventListReader.SelectionObservation(scopeComplete: true, selected: [Self.region])
++        let cc64: RawEventRow = [AXColumnID(id: "Status"): RawCell(valueDescription: "Control"),
++                                 AXColumnID(id: "Num"): RawCell(sliderValue: 64)]
++        let observed = EventListReadbackCollector.ProbeObservation(
++            liveHeaderTitles: [], rows: [Self.row(), cc64], verificationRows: [Self.row(), cc64],
++            firstRowCellChildren: [:], rawItemCountText: "2 Events", rawRegionPath: "Selected MIDI"
++        )
++        let result = try SelectedRegionEventListReader.read(selection: { selection }, collect: { observed })
++        let body = try #require(sharedJSONObject(SelectedRegionEventListReader.responseJSON(result)))
++        #expect(body["event_list_path_matches_selected_name"] as? Bool == true)
++        #expect(body["event_list_name_match_is_identity_proof"] as? Bool == false)
++        #expect(body["observed_english_cc64_candidate_count"] as? Int == 1)
++        #expect(body["cc64_candidate_count_is_complete"] as? Bool == false)
++    }
++
+     @Test func selectionDriftOverridesFailedHarvestAfterUnconditionalReadback() {
+         var reads = 0
+         let changed = SelectedRegionEventListReader.RegionIdentity(
+@@ -160,6 +218,22 @@ import Testing
+         #expect(!(try #require(body["row_selection_restored"] as? Bool)))
+     }
+ 
++    @Test func harvestFailureRetainsUnderlyingCauseAndRestoration() throws {
++        let selection = SelectedRegionEventListReader.SelectionObservation(scopeComplete: true, selected: [Self.region])
++        do {
++            _ = try SelectedRegionEventListReader.read(selection: { selection }, collectAttempt: {
++                .init(result: .failure(EventListReadbackCollectorError.rowsUnavailable),
++                      rowSelectionWriteAttempted: true, rowSelectionRestored: true)
++            })
++            Issue.record("Expected refusal")
++        } catch {
++            let body = try #require(sharedJSONObject(SelectedRegionEventListReader.refusalJSON(error)))
++            #expect(body["reason"] as? String == "event_list_observation_unavailable")
++            #expect((body["observation_error"] as? String)?.contains("AXRows is unavailable") == true)
++            #expect(body["row_selection_restored"] as? Bool == true)
++        }
++    }
++
+     @Test func rowContentDriftDuringCollectionRefuses() {
+         let selection = SelectedRegionEventListReader.SelectionObservation(
+             scopeComplete: true,
+@@ -226,6 +300,18 @@ import Testing
+         #expect(!collected)
+     }
+ 
++    @Test func refusalReportsObservedCountWithoutClaimingSelectionIdentity() throws {
++        for count in [0, 2] {
++            let body = try #require(sharedJSONObject(SelectedRegionEventListReader.refusalJSON(
++                SelectedRegionEventListReader.Refusal.selectedRegionCount(count)
++            )))
++            #expect(body["reason"] as? String == "selected_region_count_not_one")
++            #expect(body["selected_region_count"] as? Int == count)
++            #expect(!(try #require(body["write_attempted"] as? Bool)))
++            #expect(body["state"] as? String == "C")
++        }
++    }
++
+     @Test func selectionDriftDuringCollectionRefuses() {
+         var reads = 0
+         let changed = SelectedRegionEventListReader.RegionIdentity(
+@@ -287,6 +373,18 @@ import Testing
+         #expect(observed.selected == [Self.region])
+     }
+ 
++    @Test func missingSelectedFlagCannotBeReportedAsEmptySelection() {
++        let builder = FakeAXRuntimeBuilder()
++        let item = builder.element(302_002)
++        let info = RegionInfo(name: "Unknown", trackIndex: 0, startBar: 1, endBar: 2, kind: "midi", rawHelp: "fixture")
++        let enumeration = AccessibilityChannel.RegionEnumerationResult(
++            regions: [(item, info)], layoutItemCount: 1, nonRegionCount: 0,
++            trackHeaderCount: 1, trackHeadersWithinViewport: 1,
++            regionItemsOutsideViewport: 0, trackHeadersWithStackVisibilityGaps: 0
++        )
++        #expect(AccessibilityChannel.selectedRegionObservation(from: enumeration, runtime: builder.makeAXRuntime()) == nil)
++    }
++
+     @Test func selectedRegionHarvestCannotEnterWhileAnotherMutationOwnsLogicAccess() async throws {
+         let gate = LogicMutationGate()
+         let predecessor = try #require(gate.tryAcquire(operation: "logic_tracks.rename"))
+diff --git a/Tests/LogicProMCPTests/ObservedPitchEditTests.swift b/Tests/LogicProMCPTests/ObservedPitchEditTests.swift
+new file mode 100644
+index 0000000..e85e4eb
+--- /dev/null
++++ b/Tests/LogicProMCPTests/ObservedPitchEditTests.swift
+@@ -0,0 +1,63 @@
++import Testing
++@testable import LogicProMCP
++
++@Suite struct ObservedPitchEditTests {
++    @Test func recycledRowsMustSettleBeforeStitching() throws {
++        let stale = EventListReadbackCollector.VirtualWindowObservation(totalRows: 1, rows: [
++            .init(key: .init(index: 0), row: [AXColumnID(id: "Num"): RawCell(sliderValue: 60)])])
++        let fresh = EventListReadbackCollector.VirtualWindowObservation(totalRows: 1, rows: [
++            .init(key: .init(index: 0), row: [AXColumnID(id: "Num"): RawCell(sliderValue: 62)])])
++        var calls = 0
++        let result = try EventListReadbackCollector.stableVirtualWindow(read: {
++            calls += 1; return calls == 1 ? stale : fresh
++        }, settle: {})
++        #expect(result == fresh)
++        #expect(calls == 3)
++        var changing = false
++        #expect(throws: EventListReadbackCollectorError.self) {
++            try EventListReadbackCollector.stableVirtualWindow(read: {
++                changing.toggle(); return changing ? stale : fresh
++            }, settle: {})
++        }
++    }
++
++    @Test func observedSingleSemitoneWritesReachBothDirections() throws {
++        for target in [58, 62] {
++            var pitch = 60
++            let writes = try ObservedPitchEdit.step(from: 60, to: target, read: { pitch },
++                write: { requested in pitch += requested > pitch ? 1 : -1 }, validate: {})
++            #expect(writes == 2)
++            #expect(pitch == target)
++        }
++    }
++    @Test func directSetterIsAcceptedWithoutExtraWrites() throws {
++        var pitch = 60
++        let writes = try ObservedPitchEdit.step(from: 60, to: 72, read: { pitch },
++            write: { pitch = $0 }, validate: {})
++        #expect(writes == 1)
++        #expect(pitch == 72)
++    }
++    @Test func noProgressOrWrongDirectionStopsAfterOneAttempt() {
++        for change in [0, -1, 3] {
++            var pitch = 60
++            var writes = 0
++            #expect(throws: ObservedPitchEdit.Failure.self) {
++                try ObservedPitchEdit.step(from: 60, to: 62, read: { pitch },
++                    write: { _ in writes += 1; pitch += change }, validate: {})
++            }
++            #expect(writes == 1)
++        }
++    }
++    @Test func stalePitchOrLostCustodyNeverWrites() {
++        var writes = 0
++        #expect(throws: ObservedPitchEdit.Failure.self) {
++            try ObservedPitchEdit.step(from: 60, to: 62, read: { 61 },
++                write: { _ in writes += 1 }, validate: {})
++        }
++        #expect(throws: ObservedPitchEdit.Failure.self) {
++            try ObservedPitchEdit.step(from: 60, to: 62, read: { 60 },
++                write: { _ in writes += 1 }, validate: { throw ObservedPitchEdit.Failure("lost") })
++        }
++        #expect(writes == 0)
++    }
++}
+diff --git a/Tests/LogicProMCPTests/ObservedRegionFocusTests.swift b/Tests/LogicProMCPTests/ObservedRegionFocusTests.swift
+new file mode 100644
+index 0000000..cf50a22
+--- /dev/null
++++ b/Tests/LogicProMCPTests/ObservedRegionFocusTests.swift
+@@ -0,0 +1,112 @@
++import ApplicationServices
++import Testing
++@testable import LogicProMCP
++
++struct ObservedRegionFocusTests {
++    final class Tree: @unchecked Sendable {
++        let window = AXUIElementCreateApplication(10101)
++        let owner = AXUIElementCreateApplication(10102)
++        let region = AXUIElementCreateApplication(10103)
++        let unrelated = AXUIElementCreateApplication(10104)
++        let table = AXUIElementCreateApplication(10105)
++        let nested = AXUIElementCreateApplication(10106)
++        var detached = false
++        var duplicateOwner = false
++        var siblingAlias = false
++        var ownerRole = "AXGroup"
++        var ownerLabel = kAXTitleAttribute as String
++        var selectedRegion: Bool? = true
++        var selectedOther: Bool? = false
++        func children(_ element: AXUIElement) -> [AXUIElement] {
++            if CFEqual(element,window) { return [owner,unrelated,table] }
++            if CFEqual(element,owner) { return detached ? [] : duplicateOwner ? [nested] : [region] }
++            if CFEqual(element,nested) { return [region] }
++            if CFEqual(element,unrelated) && siblingAlias { return [region] }
++            return []
++        }
++        var runtime: AXHelpers.Runtime {
++            .init(axApp: { _ in self.window }, attributeValue: { element,attribute in
++                if attribute == kAXSelectedAttribute as String {
++                    let selected = CFEqual(element,self.region) ? self.selectedRegion : self.selectedOther
++                    return selected.map { NSNumber(value:$0) }
++                }
++                if attribute == kAXRoleAttribute as String {
++                    if CFEqual(element,self.owner) { return self.ownerRole as NSString }
++                    return (CFEqual(element,self.region) ? "AXLayoutItem" : CFEqual(element,self.table) ? "AXTable" : "AXGroup") as NSString
++                }
++                if CFEqual(element,self.owner) { return attribute == self.ownerLabel ? "Tracks" as NSString : nil }
++                if attribute == kAXTitleAttribute as String,
++                   [self.owner,self.unrelated,self.nested].contains(where: { CFEqual($0,element) }) { return "Tracks" as NSString }
++                // No AXParent edges: Logic can omit these for LayoutAreas.
++                return nil
++            }, setAttributeValue: { _,_,_ in Issue.record("Read-only binding must not write"); return false },
++            children: { self.children($0) }, performAction: { _,_ in Issue.record("Read-only binding must not act"); return false },
++            childCount: { self.children($0).count })
++        }
++        func accepts(_ focus: AXUIElement) -> Bool {
++            ObservedRegionMove.boundArrangeFocus(focus,owner:owner,window:window,region:region,runtime:runtime)
++        }
++    }
++
++    @Test func bindsDownwardWithoutParentEdgesAndRejectsUnrelatedSameName() {
++        let t=Tree()
++        let owners=ObservedRegionMove.arrangeOwners(window:t.window,region:t.region,runtime:t.runtime)
++        #expect(owners.count == 1)
++        #expect(owners.first.map { CFEqual($0,t.owner) } == true)
++        #expect(t.accepts(t.owner))
++        #expect(t.accepts(t.region))
++        #expect(!t.accepts(t.unrelated))
++        #expect(!t.accepts(t.table))
++        #expect(!t.accepts(t.window))
++    }
++
++    @Test func detachedRegionAndChangedInnerOwnerCannotRouteAMenu() {
++        let t=Tree()
++        t.detached=true
++        #expect(!t.accepts(t.owner))
++        #expect(!t.accepts(t.region))
++        t.detached=false
++        t.duplicateOwner=true
++        #expect(!t.accepts(t.owner))
++        #expect(!t.accepts(t.region))
++    }
++
++    @Test func nestedTracksWrappersAreOneEditorButSiblingAliasesAreNot() {
++        let t=Tree()
++        t.duplicateOwner=true
++        let owners=ObservedRegionMove.arrangeOwners(window:t.window,region:t.region,runtime:t.runtime)
++        #expect(owners.count == 2)
++        #expect(owners.first.map { CFEqual($0,t.nested) } == true)
++        #expect(ObservedRegionMove.boundArrangeFocus(t.owner,owner:t.nested,window:t.window,region:t.region,runtime:t.runtime))
++        #expect(ObservedRegionMove.boundArrangeFocus(t.nested,owner:t.nested,window:t.window,region:t.region,runtime:t.runtime))
++        t.siblingAlias=true
++        #expect(ObservedRegionMove.arrangeOwners(window:t.window,region:t.region,runtime:t.runtime).isEmpty)
++        #expect(!t.accepts(t.owner))
++    }
++
++    @Test func selectedTracksTabMustStillContainTheHeldRegion() {
++        let t=Tree()
++        t.ownerRole="AXTabGroup"
++        t.ownerLabel=kAXValueAttribute as String
++        #expect(t.accepts(t.owner))
++        t.detached=true
++        #expect(!t.accepts(t.owner))
++    }
++
++    @Test func finalSelectionReadRejectsFocusSideEffectsAndUnreadableFlags() {
++        let t=Tree()
++        let items=[t.region,t.unrelated]
++        #expect(ObservedRegionMove.exclusiveSelection(items,target:t.region,runtime:t.runtime))
++        for state: Bool? in [true,nil] {
++            t.selectedOther=state
++            #expect(!ObservedRegionMove.exclusiveSelection(items,target:t.region,runtime:t.runtime))
++        }
++        t.selectedOther=false
++        t.selectedRegion=false
++        #expect(!ObservedRegionMove.exclusiveSelection(items,target:t.region,runtime:t.runtime))
++        t.selectedRegion=nil
++        #expect(!ObservedRegionMove.exclusiveSelection(items,target:t.region,runtime:t.runtime))
++        t.selectedRegion=true
++        #expect(!ObservedRegionMove.exclusiveSelection([t.region,t.region],target:t.region,runtime:t.runtime))
++    }
++}
+diff --git a/Tests/LogicProMCPTests/ObservedRegionMoveTests.swift b/Tests/LogicProMCPTests/ObservedRegionMoveTests.swift
+new file mode 100644
+index 0000000..fae9767
+--- /dev/null
++++ b/Tests/LogicProMCPTests/ObservedRegionMoveTests.swift
+@@ -0,0 +1,98 @@
++import Testing
++@testable import LogicProMCP
++
++struct ObservedRegionMoveTests {
++    @Test func replacedPositionControlsKeepObservedValueCustody() throws {
++        var identity=0
++        var value=1
++        var written: [Int]=[]
++        let writes=try ObservedRegionMove.advanceRebinding(to:3,range:1...9999,
++            resolve: { identity += 1; return identity }, read: { _ in value },
++            write: { control, _ in written.append(control); value += 1 }, validate: {})
++        #expect(value == 3)
++        #expect(writes == 2)
++        #expect(written.count == 2 && written[0] != written[1])
++    }
++    @Test func reboundControlValueDriftRefusesBeforeAnyWrite() {
++        var resolves=0
++        var value=1
++        var writes=0
++        #expect(throws: ObservedPitchEdit.Failure.self) {
++            try ObservedRegionMove.advanceRebinding(to:3,range:1...9999,
++                resolve: { resolves += 1; if resolves == 3 { value=2 }; return resolves },
++                read: { _ in value }, write: { _,_ in writes += 1 }, validate: {})
++        }
++        #expect(writes == 0)
++    }
++    @Test func positionStepperObservesEveryIncrementAndDirectSet() throws {
++        for (initial,target) in [(1,3),(8,1)] {
++            var value = initial
++            let count = try ObservedRegionMove.advance(from: initial, to: target, range: 1...9999,
++                read: { value }, write: { requested in value += requested > value ? 1 : -1 }, validate: {})
++            #expect(value == target)
++            #expect(count == abs(target - initial))
++        }
++        var value = 1
++        let count = try ObservedRegionMove.advance(from: 1, to: 500, range: 1...9999,
++            read: { value }, write: { value = $0 }, validate: {})
++        #expect(count == 1)
++        #expect(value == 500)
++    }
++    @Test func positionStepperRefusesStaleValueAndBoundsPartialNavigation() {
++        var writes = 0
++        #expect(throws: ObservedPitchEdit.Failure.self) {
++            try ObservedRegionMove.advance(from: 1, to: 3, range: 1...9999,
++                read: { 2 }, write: { _ in writes += 1 }, validate: {})
++        }
++        #expect(writes == 0)
++        var value = 1
++        #expect(throws: ObservedPitchEdit.Failure.self) {
++            try ObservedRegionMove.advance(from: 1, to: 5, range: 1...9999, limit: 2,
++                read: { value }, write: { _ in value += 1; writes += 1 }, validate: {})
++        }
++        #expect(writes == 2)
++        #expect(value == 3)
++    }
++    func row(bar: Int, status: String, number: Double) -> RawEventRow {
++        [AXColumnID(id: "Position"): RawCell(valueDescription: "\(bar) 1 1 61 ", groupSliderValues: [Double(bar),1,1,61]),
++         AXColumnID(id: "Status"): RawCell(valueDescription: status),
++         AXColumnID(id: "Num"): RawCell(sliderValue: number)]
++    }
++    @Test func everyNoteAndPedalMovesTogetherInBothDirections() throws {
++        let before = [row(bar: 1, status: "Note", number: 60), row(bar: 1, status: "Control", number: 64)]
++        let after = [row(bar: 3, status: "Note", number: 60), row(bar: 3, status: "Control", number: 64)]
++        try ObservedRegionMove.verifyShift(before: before, after: after, bars: 2)
++        try ObservedRegionMove.verifyShift(before: after, after: before, bars: -2)
++    }
++    @Test func pedalLeftBehindAndOtherFieldsChangingRefuse() {
++        let before = [row(bar: 1, status: "Note", number: 60), row(bar: 1, status: "Control", number: 64)]
++        for after in [
++            [row(bar: 3, status: "Note", number: 60), before[1]],
++            [row(bar: 3, status: "Note", number: 61), row(bar: 3, status: "Control", number: 64)],
++            [row(bar: 3, status: "Note", number: 60)],
++        ] {
++            #expect(throws: ObservedPitchEdit.Failure.self) {
++                try ObservedRegionMove.verifyShift(before: before, after: after, bars: 2)
++            }
++        }
++    }
++    @Test func inconsistentPositionComponentsRefuse() {
++        let before = [row(bar: 1, status: "Control", number: 64)]
++        var bad = row(bar: 3, status: "Control", number: 64)
++        bad[AXColumnID(id: "Position")] = RawCell(valueDescription: "3 1 1 61", groupSliderValues: [1,1,1,61])
++        #expect(throws: ObservedPitchEdit.Failure.self) {
++            try ObservedRegionMove.verifyShift(before: before, after: [bad], bars: 2)
++        }
++    }
++    @Test func trailingWhitespaceRawPositionsWithoutDerivedComponentsAreVerified() throws {
++        var before = row(bar: 1, status: "Control", number: 64)
++        var after = row(bar: 3, status: "Control", number: 64)
++        before[AXColumnID(id: "Position")] = RawCell(valueDescription: "1 1 1 61 ")
++        after[AXColumnID(id: "Position")] = RawCell(valueDescription: "3 1 1 61 ")
++        try ObservedRegionMove.verifyShift(before: [before], after: [after], bars: 2)
++        after[AXColumnID(id: "Position")] = RawCell(valueDescription: "3 1 1 62 ")
++        #expect(throws: ObservedPitchEdit.Failure.self) {
++            try ObservedRegionMove.verifyShift(before: [before], after: [after], bars: 2)
++        }
++    }
++}
+diff --git a/Tests/LogicProMCPTests/OperationRegistryCoverageTests.swift b/Tests/LogicProMCPTests/OperationRegistryCoverageTests.swift
+index d269931..2b88fe3 100644
+--- a/Tests/LogicProMCPTests/OperationRegistryCoverageTests.swift
++++ b/Tests/LogicProMCPTests/OperationRegistryCoverageTests.swift
+@@ -96,7 +96,7 @@ struct OperationRegistryCoverageTests {
+ 
+         // Exact target membership below covers additions without a redundant global count.
+         #expect(targetBearingIDs == expectedTargetBearingIDs)
+-        #expect(targetless.count == 79)   // #971 internally binds a retained project approval
++        #expect(targetless.count == 82)   // Preparation binds its explicit project/region selector internally.
+         #expect(targetBearingIDs.count + targetless.count == mutating.count)
+         #expect(readOnly.count + mutating.count == OperationRegistry.specs.count)
+         #expect(readOnly.contains { $0.id == .pluginsGetParamVerified })
+diff --git a/Tests/LogicProMCPTests/OperationRegistryTests.swift b/Tests/LogicProMCPTests/OperationRegistryTests.swift
+index a00f78c..101548c 100644
+--- a/Tests/LogicProMCPTests/OperationRegistryTests.swift
++++ b/Tests/LogicProMCPTests/OperationRegistryTests.swift
+@@ -1037,6 +1037,9 @@ struct OperationRegistryTests {
+         ("midi.export_track_midi", "export_track_midi", .mutating, .long, .readbackRequired),
+         ("midi.read_track_notes", "read_track_notes", .mutating, .long, .readbackRequired),
+         ("midi.read_selected_region_events", "read_selected_region_events", .readOnly, .medium, .none),
++        ("midi.prepare_region_events", "prepare_region_events", .mutating, .long, .none),
++        ("midi.edit_prepared_note_pitch", "edit_prepared_note_pitch", .mutating, .long, .none),
++        ("midi.move_prepared_region", "move_prepared_region", .mutating, .long, .none),
+         ("midi.list_ports", "list_ports", .readOnly, .short, .none),
+         ("midi.create_virtual_port", "create_virtual_port", .mutating, .short, .none),
+         ("midi.step_input", "step_input", .mutating, .short, .none),
+@@ -1107,7 +1110,7 @@ struct OperationRegistryTests {
+             "send_note", "send_chord", "send_cc", "send_program_change", "send_pitch_bend",
+             "send_aftertouch", "send_sysex", "play_sequence", "import_file", "create_virtual_port",
+             "step_input", "mmc_play", "mmc_stop", "mmc_record", "mmc_locate",
+-            "export_track_midi", "read_track_notes",
++            "export_track_midi", "read_track_notes", "prepare_region_events", "edit_prepared_note_pitch", "move_prepared_region",
+         ]))
+         #expect(OperationRegistry.mutatingCommands(tool: tool) == expected)
+         #expect(!expected.contains("list_ports"))
+@@ -1121,7 +1124,7 @@ struct OperationRegistryTests {
+     func midiDeadlineParity() {
+         #expect(Self.midiCommands.filter { $0.deadline == .short }.count == 14)
+         #expect(Self.midiCommands.filter { $0.deadline == .medium }.map(\.command) == ["play_sequence", "read_selected_region_events"])
+-        #expect(Self.midiCommands.filter { $0.deadline == .long }.map(\.command) == ["import_file", "export_track_midi", "read_track_notes"])
++        #expect(Self.midiCommands.filter { $0.deadline == .long }.map(\.command) == ["import_file", "export_track_midi", "read_track_notes", "prepare_region_events", "edit_prepared_note_pitch", "move_prepared_region"])
+ 
+         for entry in Self.midiCommands {
+             #expect(OperationRegistry.deadlineSeconds(tool: "logic_midi", command: entry.command)
+diff --git a/Tests/LogicProMCPTests/RegionEventPreparationTests.swift b/Tests/LogicProMCPTests/RegionEventPreparationTests.swift
+new file mode 100644
+index 0000000..299f4ad
+--- /dev/null
++++ b/Tests/LogicProMCPTests/RegionEventPreparationTests.swift
+@@ -0,0 +1,43 @@
++import Foundation
++import MCP
++import Testing
++@testable import LogicProMCP
++
++@Suite struct RegionEventPreparationTests {
++    static var valid: [String: Value] {
++        ["project_path": .string("/tmp/Test.logicx"), "region_name": .string("Piano"),
++         "track_index": .int(0), "start_bar": .int(1), "end_bar": .int(9)]
++    }
++    @Test func bindsAllRegionCoordinates() throws {
++        let target = try RegionEventPreparation.Target(params: Self.valid)
++        #expect(target.matches(.init(name: "Piano", trackIndex: 0, startBar: 1, endBar: 9, kind: "midi")))
++        for other in [
++            SelectedRegionEventListReader.RegionIdentity(name: "Piano", trackIndex: 1, startBar: 1, endBar: 9, kind: "midi"),
++            .init(name: "Piano", trackIndex: 0, startBar: 9, endBar: 17, kind: "midi"),
++            .init(name: "Piano", trackIndex: 0, startBar: 1, endBar: 9, kind: "audio"),
++            .init(name: "Other", trackIndex: 0, startBar: 1, endBar: 9, kind: "midi")
++        ] { #expect(!target.matches(other)) }
++    }
++    @Test func refusesMalformedTargets() {
++        let replacements: [(String, Value)] = [
++            ("project_path", .string("Test.logicx")), ("project_path", .string("/tmp/test.mid")),
++            ("track_index", .int(-1)), ("start_bar", .int(0)), ("end_bar", .int(1)),
++            ("region_name", .string("")), ("track_index", .string("0")), ("confirmed", .bool(true))
++        ]
++        for (key, value) in replacements {
++            var params = Self.valid; params[key] = value
++            #expect(throws: RegionEventPreparation.Failure.self) { try RegionEventPreparation.Target(params: params) }
++        }
++        for key in Self.valid.keys {
++            var params = Self.valid; params.removeValue(forKey: key)
++            #expect(throws: RegionEventPreparation.Failure.self) { try RegionEventPreparation.Target(params: params) }
++        }
++    }
++    @Test func invalidRequestDoesNotNavigate() async throws {
++        let json = await RegionEventPreparation.prepare(params: [:])
++        let result = try #require(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
++        #expect(result["reason"] as? String == "invalid_target")
++        #expect(result["ui_actions_attempted"] as? Int == 0)
++        #expect(result["musical_event_write_attempted"] as? Bool == false)
++    }
++}
