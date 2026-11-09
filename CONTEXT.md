@@ -56,3 +56,5 @@ Read AGENTS.md, this file, Git status, then one task. Update this English file a
 - 2026-11-10: refreshed the bilingual site introduction for all three tools, including executable SovaFlow and integration limits.
 
 - 2026-11-10: expanded bilingual landing-page beginner instructions for installing and trying each project; clarified DeepChord terminal prerequisites and first output.
+
+- 2026-11-10: tested fresh public ZIP starters and DeepChord install in isolated paths; corrected site guidance for empty SovaRoll, fixed synthetic MIDI and SovaFlow example adapter precedence. Actual gemma4:12b-mlx session failed validation for two requests (harmony, then form boundary); no successful AI output claimed.
