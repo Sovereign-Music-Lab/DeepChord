@@ -93,6 +93,20 @@ When `composer>` appears, describe the music you want, such as “Make a warm C-
 
 During a session, `/explain` shows the explanation, `/status` shows progress, `/new` starts a new piece, and `/open` requests that Logic open the latest result.
 
+**First-time tip:** At `composer>`, enter a music request or a session command such as `/open`. Shell commands such as `ollama list` and `deepchord session ...` belong in the normal terminal; enter `/quit` first. `YOUR_INSTALLED_LOCAL_MODEL` is a placeholder, not a model name; check installed names with `ollama list`.
+
+In the example, `--bars 4` means four bars. The current program generates a **1–16 bar piano sketch** per request, mainly melody and accompaniment. It does not automatically produce a complete arranged and mixed song. You can restart a session with `--bars 16` in the normal terminal, but longer generations may fail validation.
+
+**Open and hear the result in Logic Pro (Mac):**
+
+1. Save any Logic project you are working on first.
+2. After a successful composition, enter `/open` at `composer>` to request opening the latest MIDI in Logic. MCP configuration is not required for this open request.
+3. Review Logic's import or project dialogs; choose a software instrument for each track if needed and play it. An accepted open request does not establish that import or sound succeeded.
+4. Use **File → Save** to save the Logic project. MIDI contains editable notes, not a finished audio recording.
+
+If `/open` does not work, import `composition.mid` from the `Editable source:` folder printed after success. Review the target project and import options yourself.
+
+
 For a non-interactive list, repeat `--request 'first request' --request 'revision'`. For one composition:
 
 ```sh

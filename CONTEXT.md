@@ -64,3 +64,5 @@ Read AGENTS.md, this file, Git status, then one task. Update this English file a
 - 2026-11-10: expanded the bilingual landing page with dedicated SovaRoll and SovaFlow sections after the maintainer noted its DeepChord emphasis.
 
 - 2026-11-10: removed duplicate DeepChord introduction from both site locales; existing project navigation now points to the overview card.
+
+- 2026-11-10: Bilingual README now explains composer versus shell, sketch length, and the first Logic handoff.
