@@ -1,6 +1,6 @@
 # CONTEXT — Sovereign Music Lab website
 
-Updated: 2026-11-08 handoff. This site is maintained from the site/ subtree of DeepChord.
+Updated: 2026-11-10. This site is maintained from the site/ subtree of DeepChord.
 
 ## Identity
 - Public repository: Sovereign-Music-Lab/Sovereign-Music-Lab.github.io, branch main.
@@ -23,6 +23,7 @@ Updated: 2026-11-08 handoff. This site is maintained from the site/ subtree of D
 - Current capability and future architecture are separate. Preserve editable sources and actual evidence.
 
 ## Current state and next action
+- Bilingual landing page introduces all three projects with a practical example and current integration limits.
 - Read both README languages and the paired HTML pages before changing content.
 - Keep credits, locale parity, canonical/hreflang, favicon/OG assets and link destinations consistent.
 - Product links connect the organization, DeepChord, SovaRoll and SovaFlow; integrations retain their documented limits.

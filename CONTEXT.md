@@ -52,3 +52,5 @@ Updated: 2026-11-09 local Logic workflow. Version 0.4.0 committed and pushed on 
 
 ## Update rule
 Read AGENTS.md, this file, Git status, then one task. Update this English file after each completed/blocked task and before ending a session. Keep it short; archive detail under docs/context/. Recheck the working directory and remote whenever switching repositories. Git and actual test output outrank stale summaries. Publication must be verified against the remote; this document alone is not proof of a push.
+
+- 2026-11-10: refreshed the bilingual site introduction for all three tools, including executable SovaFlow and integration limits.
