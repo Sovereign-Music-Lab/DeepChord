@@ -338,7 +338,7 @@ def _edit_copy(source, destination, request, model, config, *, mode):
             progress('Applying Gemma’s change and checking every event…')
             after = client.tool('logic_midi',command, {
                 'preparation_id':before['preparation_id'], **plan,
-            }, timeout=330).get('structuredContent',{})
+            }, timeout=960).get('structuredContent',{})
             core.dump(evidence/'after.json', after)
             flags = ('raw_pitch_diff_verified','other_raw_events_preserved') if mode == 'pitch' else ('raw_bar_shift_verified','other_raw_fields_preserved','other_observed_region_bounds_preserved')
             if not all(after.get(flag) is True for flag in flags):

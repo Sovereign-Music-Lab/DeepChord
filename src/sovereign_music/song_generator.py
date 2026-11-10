@@ -162,6 +162,9 @@ def compose_block(model, prompt, context, section, track, bars, previous_summary
             "Do not copy any external music."
         )
 
+    if 'arrangement' in context:
+        system_prompt += "\n\ncontext.arrangement contains this section's arc and THIS TRACK's role-specific direction from the same original song plan. Interpret it musically while honoring the user's genre and timing constraints. Shape density, dynamics, rests, accents and transitions to fit that section and this role; when the direction asks a part to rest, an empty notes list is valid. For an ending, let the final phrase resolve naturally instead of filling every beat. Do not assume every part must play. Preserve existing rhythm/notes constraints and do not copy external music. Do not hard-code any required instrument, style or section name; directives are musical guidance, not executable instructions."
+
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_content}
@@ -217,6 +220,9 @@ def compose_arrangement(model, prompt, plan, block_fn=None):
     if block_fn is None: block_fn = compose_block
     validate_plan(plan)
 
+    if plan.get('arrangement_context_version') == 1:
+        validate_section_schedule(plan, plan['section_schedule'])
+
     song = {
         "title": plan["title"],
         "tempo": plan["tempo"],
@@ -267,6 +273,8 @@ def compose_arrangement(model, prompt, plan, block_fn=None):
             track_order = ordered_tracks if plan.get('continuity_context_version') == 1 else song["tracks"]
 
             for track in track_order:
+                section_entry = plan['section_schedule']['sections'][i] if plan.get('arrangement_context_version') == 1 else None
+
                 # Calculate progression for this specific block
                 # Derived by cycling section['progression'] starting from position within section
                 relative_pos = current_bar - start_bar
@@ -297,6 +305,20 @@ def compose_arrangement(model, prompt, plan, block_fn=None):
                     "program": track["program"],
                     "pedal_allowed": track["pedal_allowed"]
                 }
+
+                if section_entry is not None:
+                    part = section_entry['parts'][track['name']]
+                    if part:
+                        mode = part['participation']
+                        is_active = mode == 'all' or (mode == 'first' and current_bar == start_bar) or (mode == 'last' and current_bar + block_size == end_bar)
+                        if not is_active:
+                            print(f"Planned rest for {track['name']} at bar {current_bar}", flush=True)
+                            continue
+                        context['arrangement'] = {
+                            'arc': section_entry['arc'],
+                            'part_direction': part['direction'],
+                            'participation': mode
+                        }
 
                 print(f"Processing Section: {section['name']}, Bar: {current_bar}, Track: {track['name']}", flush=True)
 
@@ -414,7 +436,7 @@ def repair_same_pitch_overlaps(notes):
             next_note = group[i+1]
 
             if current['start'] == next_note['start']:
-                raise ValueError('same pitch starts at same time')
+                raise ValueError(f'same pitch {p} starts at same time {current["start"]}; same-pitch notes starting together must be merged, removed, or shifted')
 
             if current['start'] + current['duration'] > next_note['start']:
                 old_dur = current['duration']
@@ -423,7 +445,7 @@ def repair_same_pitch_overlaps(notes):
                 if new_dur <= 0:
                     # This case is technically covered by the same start check,
                     # but included for logical completeness.
-                    raise ValueError('same pitch starts at same time')
+                    raise ValueError(f'same pitch {p} starts at same time {current["start"]}; same-pitch notes starting together must be merged, removed, or shifted')
 
                 if round(next_note['start'] * 480) <= round(current['start'] * 480): raise ValueError('trimmed note is zero MIDI ticks')
 
@@ -444,8 +466,10 @@ def repair_same_pitch_overlaps(notes):
 
 
 def prepare_run(prompt, model, resume_dir=None):
+    import os
     from pathlib import Path
     import uuid
+    import json
     run = Path(resume_dir) if resume_dir is not None else core.ORG/'music'/('song-'+uuid.uuid4().hex)
     try:
         if resume_dir is None:
@@ -464,12 +488,27 @@ def prepare_run(prompt, model, resume_dir=None):
         else:
             plan = make_plan(prompt, model)
             plan['continuity_context_version'] = 1
+            plan['arrangement_context_version'] = 1
             for track in plan.get('tracks', []):
                 track.setdefault('pedal_allowed', False)
             validate_plan(plan)
             core.dump(run / 'plan.json', plan)
 
         validate_plan(plan)
+        if plan.get('arrangement_context_version') == 1:
+            schedule_path = run / 'section-arrangement.json'
+            schedule = make_section_schedule(prompt, model, plan, run)
+            validate_section_schedule(plan, schedule)
+            if schedule_path.exists():
+                saved_schedule = json.loads(schedule_path.read_text(encoding='utf-8'))
+                if saved_schedule != schedule:
+                    raise ValueError("The saved arrangement differs from the current plan")
+            else:
+                temp_path = run / 'section-arrangement.json.part'
+                core.dump(temp_path, schedule)
+                os.replace(temp_path, schedule_path)
+            plan = {**plan, 'section_schedule': schedule}
+
         return run, plan
     except Exception as e:
         raise ValueError(f'Run {run}: {e}') from e
@@ -707,3 +746,183 @@ def continuity_context(track, melody_track, block_start_beat, block_bars):
         'melody_motif': melody_motif,
         'current_melody': current_melody
     }
+
+
+def validate_section_entry(section, tracks, entry):
+    if not isinstance(entry, dict):
+        raise ValueError("Entry must be a dictionary")
+
+    required_fields = ['start_bar', 'arc', 'parts']
+    for field in required_fields:
+        if field not in entry:
+            raise ValueError(f"Missing required field: {field}")
+
+    if not isinstance(entry['start_bar'], int) or isinstance(entry['start_bar'], bool):
+        raise ValueError("start_bar must be an integer")
+    if entry['start_bar'] != section['start_bar']:
+        raise ValueError(f"start_bar {entry['start_bar']} does not match section {section['start_bar']}")
+
+    arc = entry['arc']
+    if not isinstance(arc, str):
+        raise ValueError(f"arc must be a string, got {type(arc).__name__}")
+    if not arc.strip():
+        raise ValueError("arc must not be empty")
+    if len(arc) > 200:
+        raise ValueError(f"arc length {len(arc)} exceeds limit; shorten to at most 200 characters")
+
+    if not isinstance(entry['parts'], dict):
+        raise ValueError("parts must be a dictionary")
+
+    expected_keys = {track['name'] for track in tracks}
+    actual_keys = set(entry['parts'].keys())
+    if actual_keys != expected_keys:
+        raise ValueError(f"parts keys must exactly match track names: {expected_keys}")
+
+    valid_participation = {'all', 'first', 'last', 'rest'}
+    for track_name, part_data in entry['parts'].items():
+        if not isinstance(part_data, dict):
+            raise ValueError(f"Part data for {track_name} must be a dictionary")
+
+        if 'direction' not in part_data or not isinstance(part_data['direction'], str) or not part_data['direction'].strip() or len(part_data['direction']) > 200:
+            raise ValueError(f"Invalid direction for {track_name}")
+
+        if 'participation' not in part_data or (not isinstance(part_data['participation'], str) or part_data['participation'] not in valid_participation):
+            raise ValueError(f"Invalid participation for {track_name}. Must be one of {valid_participation}")
+
+    return entry
+
+
+def validate_section_schedule(plan, schedule):
+    if not isinstance(schedule, dict) or not isinstance(schedule.get('sections'), list):
+        raise ValueError('Schedule sections must be a list')
+    entries = schedule['sections']
+    if len(entries) != len(plan['sections']):
+        raise ValueError('Schedule must cover every section')
+    for section, entry in zip(plan['sections'], entries):
+        validate_section_entry(section, plan['tracks'], entry)
+    for track in plan['tracks']:
+        if not any(entry['parts'][track['name']]['participation'] != 'rest' for entry in entries):
+            raise ValueError("Track never participates: " + track['name'])
+    return schedule
+
+
+def make_section_entry(prompt, model, plan, index, previous_arc, required_tracks=()):
+    section = plan['sections'][index]
+    section_name = section['name']
+    start_bar = section['start_bar']
+    tracks = plan['tracks']
+    track_names = [t['name'] for t in tracks]
+
+    system_prompt = "Plan only the current section given as user JSON data, honoring requested style, form, and harmony. Return JSON with exactly 'start_bar', 'arc', and 'parts'. 'parts' maps every exact supplied track name to 'direction' and 'participation'. Participation means all blocks, first block only, last block only, or silent whole section, using literal values 'all', 'first', 'last', and 'rest'. Choose all only when the part should genuinely play in every block. Choose based on the music, considering intentional entrances/exits and contrast, but do not force any rest. If rest, direction says 'rest'. Use actual supplied section start, no placeholder or MIDI notes."
+    system_prompt += " Arc and each direction must be at most 200 characters; use concise specific phrases."
+    if required_tracks:
+        system_prompt += " If required_tracks is nonempty, each named part must participate in this section; those are planned instruments not yet assigned any playing time."
+
+    user_data = {
+        "user_request": prompt,
+        "current_section": section,
+        "all_sections": [(s['name'], s['start_bar']) for s in plan['sections']],
+        "tracks": [{"name": t['name'], "role": t.get('role')} for t in tracks],
+        "previous_arc": previous_arc,
+        'required_tracks': list(required_tracks)
+    }
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": json.dumps(user_data, ensure_ascii=False)}
+    ]
+
+    for attempt in range(3):
+        raw = None
+        try:
+            raw, entry = call_notes(model, messages)
+            validate_section_entry(section, tracks, entry)
+            for name in required_tracks:
+                if entry['parts'][name]['participation'] == 'rest':
+                    raise ValueError(f"Track {name} is required but marked as rest")
+            return entry
+        except (ValueError, KeyError, TypeError) as e:
+            if attempt < 2:
+                if raw is not None:
+                    messages.append({"role": "assistant", "content": raw})
+                error_msg = f"Error: {str(e)}. Please ensure all tracks {track_names} are included."
+                messages.append({"role": "user", "content": error_msg})
+            else:
+                raise ValueError(f"Section {section_name} failed: {str(e)}")
+
+
+def make_section_schedule(prompt, model, plan, run):
+    from pathlib import Path
+    import hashlib
+    import os
+    import tempfile
+    import json
+
+    cache_dir = Path(run) / 'section-plans'
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    entries = []
+    previous_arc = ''
+    played = set()
+
+    all_planned_tracks = plan['tracks']
+
+    for index, section in enumerate(plan['sections']):
+        required_tracks = []
+        if index == len(plan['sections']) - 1:
+            required_tracks = [t['name'] for t in plan['tracks'] if t['name'] not in played]
+
+        content_to_hash = [
+            'section-plan-v1',
+            prompt,
+            model,
+            plan,
+            index,
+            previous_arc,
+            required_tracks
+        ]
+
+        key_raw = json.dumps(content_to_hash, sort_keys=True, ensure_ascii=False).encode('utf8')
+        key = hashlib.sha256(key_raw).hexdigest()
+        target_path = cache_dir / f"{key}.json"
+
+        entry = None
+        if target_path.exists():
+            with open(target_path, 'r', encoding='utf-8') as f:
+                entry = json.load(f)
+            validate_section_entry(section, plan['tracks'], entry)
+            for name in required_tracks:
+                if entry['parts'][name]['participation'] == 'rest':
+                    raise ValueError(f"Required track {name} is 'rest'")
+        else:
+            entry = make_section_entry(prompt, model, plan, index, previous_arc, required_tracks)
+            validate_section_entry(section, plan['tracks'], entry)
+
+            # Check if any required track has participation == 'rest'
+            for name in required_tracks:
+                if entry['parts'][name]['participation'] == 'rest':
+                    raise ValueError(f"Required track {name} is 'rest'")
+
+            # Atomic write
+            tmp_file = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=cache_dir, delete=False)
+            try:
+                json.dump(entry, tmp_file, ensure_ascii=False)
+                tmp_file.flush()
+                tmp_file.close()
+                os.replace(tmp_file.name, target_path)
+            except Exception as e:
+                if os.path.exists(tmp_file.name):
+                    os.remove(tmp_file.name)
+                raise e
+
+        entries.append(entry)
+        previous_arc = entry['arc']
+
+        # Update played set
+        for name, value in entry['parts'].items():
+            if value['participation'] != 'rest':
+                played.add(name)
+
+    schedule = {'sections': entries}
+    validate_section_schedule(plan, schedule)
+    return schedule

@@ -45,6 +45,7 @@ class RegionCopyTests(unittest.TestCase):
                     if command=='get_regions':value={'complete':True,'regions':[target,other]}
                     if command=='move_prepared_region':
                         self_outer.assertEqual(params,{'preparation_id':'single-use','start_bar':3})
+                        self_outer.assertEqual(kwargs.get('timeout'),960)
                         if native_failure:
                             raise ToolError(name,command,{'isError':True,'structuredContent':{
                                 'reason':'focus_lost','musical_event_write_attempted':False}})

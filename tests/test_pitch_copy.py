@@ -37,7 +37,7 @@ class PitchCopyTests(unittest.TestCase):
                     if command=='get_regions': result={'complete':True,'regions':[{'kind':'midi','name':'Piano'}]}
                     if command=='edit_prepared_note_pitch':
                         self_timeout=kwargs.get('timeout')
-                        if self_timeout!=330: raise AssertionError('Full verification needs the long operation timeout')
+                        if self_timeout!=960: raise AssertionError('Full verification needs the extended operation timeout')
                         if timeout: raise TimeoutError('outcome unknown')
                         result=after
                     if command=='save':
