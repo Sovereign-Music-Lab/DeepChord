@@ -42,7 +42,7 @@ def make_plan(prompt, model):
         }
     }
 
-    response = core.api('/api/chat', payload, timeout=600)
+    response = core.chat(payload, timeout=600)
 
     if response.get('done_reason') == 'length':
         raise ValueError("Response reached length limit")
@@ -117,7 +117,7 @@ def call_notes(model, messages):
             'num_predict': 2000
         }
     }
-    response = core.api('/api/chat', payload, timeout=600)
+    response = core.chat(payload, timeout=600)
     if response.get('done_reason') == 'length':
         raise ValueError('response truncated')
     text = response['message']['content']

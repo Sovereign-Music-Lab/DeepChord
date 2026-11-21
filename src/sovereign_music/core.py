@@ -18,7 +18,10 @@ import urllib.request
 ORG = Path(os.environ.get('SOVEREIGN_MUSIC_HOME', Path.home()/'.local/share/sovereign-music')).expanduser().resolve()
 RAG = Path(os.environ['MUSIC_RAG_ROOT']).expanduser().resolve() if os.environ.get('MUSIC_RAG_ROOT') else None
 API = 'http://127.0.0.1:11434'
-MODEL = 'gemma4:12b-mlx'
+# Default local model. Override per command with --model, or for every command
+# (and for SovaFlow, which calls this CLI) with DEEPCHORD_MODEL. Never replaced
+# silently: a missing model is an error that lists the installed tags.
+MODEL = os.environ.get('DEEPCHORD_MODEL') or 'gemma4:12b-mlx'
 
 
 def dump(path, obj):
@@ -32,11 +35,48 @@ def api(route, payload=None, timeout=240):
         return json.load(r)
 
 
+# Some local models (gpt-oss) reason even when asked not to; the reasoning text
+# is counted against num_predict, so a bounded JSON answer gets cut off.
+# Such models get the lowest reasoning level and extra room. Others are
+# detected the first time an answer is cut off after reasoning.
+REASONING_PREFIXES = tuple(x.strip().lower() for x in os.environ.get('DEEPCHORD_REASONING_MODELS','gpt-oss').split(',') if x.strip())
+REASONING_HEADROOM = 3072
+_reasoning_seen = set()
+
+
+def reasoning_model(name):
+    return name in _reasoning_seen or name.lower().startswith(REASONING_PREFIXES)
+
+
+def chat(payload, timeout=240, effort='low'):
+    """POST /api/chat; same payload as api(), with room for reasoning models.
+
+    effort is the reasoning level such a model gets: 'low' for small plans,
+    'medium' for composing (with 'low' a tested model dropped whole tracks).
+    """
+    def prepared():
+        if not reasoning_model(payload['model']):
+            return payload
+        room=REASONING_HEADROOM*(2 if effort=='medium' else 1)
+        options=dict(payload.get('options',{}))
+        options['num_predict']=options.get('num_predict',1024)+room
+        options['num_ctx']=options.get('num_ctx',4096)+room
+        return {**payload,'think':effort,'options':options}
+    response=api('/api/chat',prepared(),timeout=timeout)
+    message=response.get('message') if isinstance(response,dict) else None
+    if (isinstance(message,dict) and response.get('done_reason')=='length' and message.get('thinking')
+            and not reasoning_model(payload['model'])):
+        _reasoning_seen.add(payload['model'])
+        response=api('/api/chat',prepared(),timeout=timeout)
+    return response
+
+
 def local_model(name):
     models = api('/api/tags', timeout=5)['models']
     item = next((m for m in models if m['name']==name), None)
     if not item:
-        raise ValueError('설치되지 않은 모델: '+name)
+        installed=', '.join(m['name'] for m in models if not m.get('remote_host') and not m.get('remote_model') and 'cloud' not in m['name'].lower()) or 'none'
+        raise ValueError(f'설치되지 않은 모델 / model not installed: {name}. Installed local models: {installed}. Use --model TAG or set DEEPCHORD_MODEL=TAG.')
     if item.get('remote_host') or item.get('remote_model') or 'cloud' in name.lower():
         raise ValueError('소버린 모드에서는 cloud 모델을 사용할 수 없습니다.')
     return item
@@ -55,7 +95,8 @@ NUMBER={'type':'number'}
 SCHEMA={'type':'object','required':['title','tempo','bars','chords','tracks'], 'properties':{
     'title':{'type':'string'}, 'tempo':NUMBER,'bars':{'type':'integer'},
     'chords':{'type':'array','items':{'type':'string'}},
-    'tracks':{'type':'array','items':{'type':'object','required':['name','notes'], 'properties':{
+    # Two lanes are asked for; without minItems a tested model closed the array after the melody.
+    'tracks':{'type':'array','minItems':2,'maxItems':3,'items':{'type':'object','required':['name','notes'], 'properties':{
         'name':{'type':'string'}, 'notes':{'type':'array','items':{'type':'object','required':['pitch','start','duration','velocity'], 'properties':{
             'pitch':{'type':'integer'},'start':NUMBER,'duration':NUMBER,'velocity':{'type':'integer'}}}}}}}}}
 
@@ -256,7 +297,7 @@ def compose(args):
             from .training import generate_with_adapter
             response=generate_with_adapter(args.model,adapter,messages)
         else:
-            response=api('/api/chat',payload,timeout=600)
+            response=chat(payload,timeout=900,effort='medium')
         dump(run/f'response-{attempt+1}.json',response)
         content=response.get('message',{}).get('content','')
         song=None
@@ -270,6 +311,8 @@ def compose(args):
         except (ValueError,KeyError,TypeError) as e:
             if attempt == 2: raise ValueError(f'작곡 검증 실패. 기록: {run}. {e}')
             hints=harmony_repair_hints(song) if isinstance(song,dict) else []
+            if isinstance(song,dict) and {t.get('name') for t in song.get('tracks',[]) if isinstance(t,dict)}!={'Melody','Accompaniment'}:
+                e=f'{e}. The tracks array must contain exactly two objects, {{"name":"Melody","notes":[...]}} and {{"name":"Accompaniment","notes":[...]}}; the Accompaniment needs three or four chord tones in every bar'
             messages.extend([{'role':'assistant','content':content},{'role':'user','content':f'Fix this validation error and return complete JSON: {e}. Each start is a ZERO-based song beat, not a bar index; every note must satisfy start + duration <= {args.bars * 4}. Bar 1 is beats [0,4), bar 2 [4,8), bar 3 [8,12), bar 4 [12,16); continue in steps of 4 for longer songs. For accompaniment, use the chord assigned to the bar where the note starts. For each bar, accompaniment pitches must be selected from allowed_midi and must include at least one choice from EACH required_pitch_classes_midi_choices list. These numbers are calculated MIDI pitches: {json.dumps(hints)}'}])
     dump(run/'composition.json',song); dump(run/'validation.json',report)
     write_midi(song,run/'composition.mid')
@@ -277,5 +320,4 @@ def compose(args):
     write_explanation(song,run,re.findall(r'\[(theory:[\w-]+)\]',context))
     (run/'feedback.jsonl').touch()
     (run/'ARRANGEMENT.txt').write_text('Local LLM original piano sketch. 4/4; C4=60.\nSource: rag-evidence.txt (external reference evidence; check the review scope of each result, not a verified score transcription).\nCC64 repedals each bar. Assign native piano in Logic. GM program 0 is only an import hint.\nNot auditioned; no Logic project or audio render is claimed.\n')
-    print(run)
     return run

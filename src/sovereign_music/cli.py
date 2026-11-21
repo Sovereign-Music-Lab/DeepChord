@@ -26,8 +26,12 @@ def parser():
     song.add_argument('prompt')
     song.add_argument('--model',default=core.MODEL)
     song.add_argument('--resume',type=Path)
+    lead=sub.add_parser('lead',help='Compose a sung lead melody over a given form (sections, chords, syllables) of any length')
+    lead.add_argument('request',type=Path,help='deepchord.lead-request/1 JSON');lead.add_argument('--out',type=Path,required=True);lead.add_argument('--model',default=core.MODEL);lead.add_argument('--previous-run',type=Path);lead.add_argument('--note',help='What to change compared with --previous-run; sections it names (chorus, verse 2, 후렴, 2절 ...) are composed again, the others are kept')
+    lead.add_argument('--sections',help='Comma-separated section names to compose again (others keep the previous melody); "all" for every section')
     d=sub.add_parser('demo');d.add_argument('--out',type=Path,required=True)
     v=sub.add_parser('validate');v.add_argument('file',type=Path)
+    hm=sub.add_parser('harmony',help='Check chord tones and tensions of a whole song (deepchord.harmony-request/1), any length, no model');hm.add_argument('request',type=Path)
     f=sub.add_parser('feedback');f.add_argument('run',type=Path);f.add_argument('--rating',type=int,choices=range(1,6),required=True);f.add_argument('--note',required=True)
     l=sub.add_parser('logic');ls=l.add_subparsers(dest='action',required=True)
     lu=ls.add_parser('setup',help='Build the optional Logic editing extension in a new folder');lu.add_argument('--out',type=Path,required=True)
@@ -54,9 +58,12 @@ def demo(out):
 
 def execute(a):
     if a.cmd=='doctor':
-        result={'workspace':str(core.ORG),'public_foundation':True,'private_rag_configured':core.RAG is not None,'python':sys.version.split()[0],'platform':sys.platform,'capabilities':{'rag_chords_compose_session_export':True,'native_logic':sys.platform=='darwin','mlx_training':sys.platform=='darwin'}}
+        result={'workspace':str(core.ORG),'default_model':core.MODEL,'public_foundation':True,'private_rag_configured':core.RAG is not None,'python':sys.version.split()[0],'platform':sys.platform,'capabilities':{'rag_chords_compose_session_export':True,'native_logic':sys.platform=='darwin','mlx_training':sys.platform=='darwin'}}
         try:result['ollama_models']=[m['name'] for m in core.api('/api/tags',timeout=5)['models'] if not m.get('remote_host') and not m.get('remote_model') and 'cloud' not in m['name']]
         except OSError as e:result['ollama_error']=str(e)
+        if 'ollama_models' in result:
+            result['default_model_installed']=core.MODEL in result['ollama_models']
+            if not result['default_model_installed']:result['next_step']='Default model is not installed. Pass --model TAG or set DEEPCHORD_MODEL=TAG (one of ollama_models).'
         return result
     if a.cmd=='rag':return core.retrieve(a.query)
     if a.cmd=='chord':
@@ -78,6 +85,9 @@ def execute(a):
     if a.cmd=='song':
         from .song_generator import run_song
         return str(run_song(a.prompt,a.model,a.resume))
+    if a.cmd=='lead':
+        from .lead import run_lead
+        return str(run_lead(a.request,a.out,a.model,a.previous_run,a.note,sections=[x for x in a.sections.split(',')] if a.sections else None))
     if a.cmd=='compose':
         run=core.compose(a)
         if a.logic:
@@ -85,6 +95,9 @@ def execute(a):
             return open_run(run,a.mcp_config)
         return str(run)
     if a.cmd=='demo':return demo(a.out)
+    if a.cmd=='harmony':
+        from .harmony import check as harmony_check_song
+        return harmony_check_song(json.loads(a.request.read_text(encoding='utf-8')))
     if a.cmd=='validate':
         song=json.loads(a.file.read_text(encoding='utf-8'))
         if 'sections' in song:

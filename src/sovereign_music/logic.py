@@ -41,7 +41,7 @@ def build_project(run, destination, config):
             if running=='false':client.tool('logic_project','launch')
             health=client.tool('logic_system','health').get('structuredContent',{})
             if not health.get('logic_pro_running') or not health.get('logic_pro_project_chooser_visible'):
-                raise RuntimeError('Logic must show the project chooser; preserve and close any current project first')
+                raise RuntimeError('Logic must show the project chooser: save and close any open project, then choose File > New from Template… so the chooser window is visible')
             result=subprocess.run(['/usr/bin/open','-b','com.apple.logic10',str(midi)],capture_output=True,text=True,timeout=30)
             if result.returncode:raise RuntimeError('MIDI open request failed: '+result.stderr.strip())
             report['status']='open_requested';dump(report_path,report)

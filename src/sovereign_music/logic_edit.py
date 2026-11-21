@@ -20,7 +20,7 @@ PLAN_SCHEMA={'type':'object','required':['operation','tempo'], 'properties':{
 def tempo_plan(request, model):
     """The model proposes a tempo; an explicit BPM in the request bounds it."""
     core.local_model(model)
-    response=core.api('/api/chat',{'model':model,'stream':False,'think':False,'format':PLAN_SCHEMA,
+    response=core.chat({'model':model,'stream':False,'think':False,'format':PLAN_SCHEMA,
         'options':{'num_ctx':4096,'num_predict':256,'temperature':0},
         'messages':[{'role':'system','content':'Interpret the user request. Only an explicit numeric tempo in BPM is supported. Return set_tempo and that number, otherwise unsupported and null. Do not invent a value.'},
                     {'role':'user','content':request}]},timeout=180)
@@ -158,7 +158,7 @@ def pitch_plan(request, snapshot, model):
     schema = {'type':'object', 'required':['operation','row_index','pitch'], 'properties':{
         'operation':{'type':'string','enum':['set_pitch','unsupported']},
         'row_index':{'type':['integer','null']}, 'pitch':{'type':['integer','null']}}}
-    response = core.api('/api/chat', {
+    response = core.chat({
         'model':model,'stream':False,'think':False,'format':schema,
         'options':{'num_ctx':4096,'num_predict':256,'temperature':0},
         'messages':[
@@ -207,7 +207,7 @@ def choose_region(request, inventory, model):
     if not regions or len(compact) > 6000:
         raise ValueError('No MIDI regions, or the region list is too large for this planner')
     core.local_model(model)
-    response = core.api('/api/chat', {
+    response = core.chat({
         'model':model, 'stream':False, 'think':False,
         'format':{'type':'object','required':['region_index'], 'properties':{
             'region_index':{'type':['integer','null']}}},
@@ -232,7 +232,7 @@ def region_move_plan(request, region, model):
     if not request.strip() or len(request) > 1000:
         raise ValueError('A short region move request is required')
     core.local_model(model)
-    response = core.api('/api/chat', {
+    response = core.chat({
         'model':model,'stream':False,'think':False,
         'format':{'type':'object','required':['operation','start_bar'],'properties':{
             'operation':{'type':'string','enum':['move_region','unsupported']},
@@ -335,7 +335,7 @@ def _edit_copy(source, destination, request, model, config, *, mode):
             if mode == 'pitch': plan = pitch_plan(request, before, model)
             report['plan'] = plan; checkpoint()
             unchanged()
-            progress('Applying Gemma’s change and checking every event…')
+            progress('Applying the model’s change and checking every event…')
             after = client.tool('logic_midi',command, {
                 'preparation_id':before['preparation_id'], **plan,
             }, timeout=960).get('structuredContent',{})

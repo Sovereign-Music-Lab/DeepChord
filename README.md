@@ -81,6 +81,8 @@ py -3 -m venv .venv
 
 For AI composition, install and run [Ollama](https://ollama.com/) and install a model separately. Type `ollama list` in the terminal to see installed models. If `gemma4:12b-mlx` is not listed, replace it in the examples with the name of an installed local model. Availability depends on your computer and operating system. DeepChord does not download models or switch to cloud models automatically.
 
+To use another installed model everywhere without typing `--model` each time, set it once: `export DEEPCHORD_MODEL=gpt-oss:20b` (PowerShell: `$env:DEEPCHORD_MODEL='gpt-oss:20b'`). `deepchord doctor` shows the default model and whether it is installed; if it is not, commands stop and list the installed tags instead of picking one. All twelve commands of the DeepChord → Logic Pro → SovaFlow pipeline are listed in one table in the [SovaFlow README](https://github.com/Sovereign-Music-Lab/SovaFlow#the-12-command-composition-pipeline).
+
 ## Compose and keep revising
 
 Enter this command to start a conversation for a four-bar piece. You can replace `my-song` with another English name to identify your piece.
@@ -118,6 +120,40 @@ deepchord compose 'Leave more space in the accompaniment' --bars 4 --previous-ru
 Each result includes an editable MIDI file (`composition.mid`), an explanation (`EXPLANATION.md`), source data and validation results. Open the MIDI in Logic or another DAW to edit its notes. The explanation distinguishes the chords used from theory retrieved as reference.
 
 Results are saved under `.local/share/sovereign-music/` in your home folder by default. If the output fails validation, DeepChord tries up to two repairs; if it still fails, earlier successful results remain available and you can make another request. On a Mac, `Start.command` also starts a session.
+
+### Write a sung melody over your own form (any length)
+
+`session` and `compose` invent a short sketch. When you already have the song's form — sections, chords per bar and the syllables of every line — `lead` lets the local model write only the vocal melody for it, one section per request, so the song can be as long as you like.
+
+```sh
+deepchord lead request.json --out "$HOME/Music/my-song-lead" --model gemma4:12b-mlx
+# next version from your notes on the previous one:
+deepchord lead request.json --out "$HOME/Music/my-song-lead-2" --previous-run "$HOME/Music/my-song-lead" --note 'make the chorus climb higher'
+```
+
+`request.json` (`deepchord.lead-request/1`):
+
+```json
+{"schema": "deepchord.lead-request/1", "title": "My song", "tempo": 96, "key": "Am", "style": "slow ballad, intimate",
+ "sections": [{"name": "Verse", "centre": 67, "key_shift": 0, "phrases": [
+   {"id": "v1.a", "start_bar": 5, "chords": ["Am", "F:2,G:2"], "syllables": ["la", "la", "la", "la"]}]}]}
+```
+
+One string per bar in `chords`; two chords in a bar are written `F:2,G:2` (beats). `centre` is the middle MIDI pitch of the singer's range. Each phrase gets exactly one note per syllable. DeepChord checks every phrase — sixteenth-note grid, inside its bars, range, a chord tone on beats 1 and 3, key or chord membership, no leap above nine semitones — and asks the model again (up to three attempts per section) with the exact problems. After the last attempt, a rhythm that runs past the phrase is squeezed proportionally into its bars, wrong pitches are moved to the nearest allowed pitch, and the phrase is marked `repaired` with what was done; a phrase with the wrong number of notes is `failed` and has no notes. A later section with the same chords and syllable counts reuses the earlier melody.
+
+A revision (`--previous-run` with `--note`) composes again only the sections the note names — `chorus`, `verse 2`, `bridge`, `pre-chorus`, `후렴`, `2절`, or an exact section name such as `FinalChorus` — and copies every other section from the previous run unchanged. A note that names no section revises the whole song. `--sections 'Chorus,Bridge'` chooses them yourself (`--sections all` for everything). The run prints which sections were composed and which were kept, and `lead.json` records it under `revision_scope`. A section whose bars or syllables changed since the previous run is always composed again. If the model gives no checked answer for a phrase it was asked to revise, that phrase keeps its previous melody and is listed as not applied — a revision never replaces a checked melody with nothing.
+
+The output folder holds `lead.json` (notes per phrase with status), `lead.mid`, `validation.json`, `rag-evidence.txt` and the model's answers. These checks are rules, not taste: listen before you use the melody.
+
+### Check the harmony of a whole song (no model)
+
+For an instrumental, or any song whose notes you already wrote, `harmony` checks every chord segment without a model and without a bar limit:
+
+```sh
+deepchord harmony request.json
+```
+
+`request.json` (`deepchord.harmony-request/1`) lists the chord segments (`bar`, `start` and `beats` in beats from the song start, `label` such as `Dm9`), the track that should state the chords (`check_track`), an optional `melody_track`, and the tracks with their notes (`start`, `duration` in beats, `pitch`). For every segment it reports whether the chord track plays the chord's 3rd and 7th (or 3rd/4th on chords without a 7th) and which pitch classes are neither chord tones nor the usual available tensions of that chord family. A note counts for the segment it overlaps most, so a hit pushed a sixteenth early belongs to the chord it pushes into. It checks labels against notes; it does not judge the music.
 
 ### Create a longer multitrack MIDI song (experimental)
 

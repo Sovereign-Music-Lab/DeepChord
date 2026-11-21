@@ -81,6 +81,8 @@ py -3 -m venv .venv
 
 AI로 작곡하려면 [Ollama](https://ollama.com/)를 따로 설치하고 실행한 뒤, 사용할 모델도 설치해야 합니다. 터미널에서 `ollama list`를 입력하면 설치된 모델 이름을 볼 수 있습니다. 아래 예시의 `gemma4:12b-mlx`가 목록에 없다면 그 자리에 설치된 로컬 모델의 이름을 넣으세요. 컴퓨터와 운영체제에 따라 사용할 수 있는 모델은 다릅니다. DeepChord는 모델을 자동으로 다운로드하거나 클라우드 모델로 바꾸지 않습니다.
 
+매번 `--model`을 쓰지 않고 다른 설치 모델을 기본으로 쓰려면 한 번 설정하세요: `export DEEPCHORD_MODEL=gpt-oss:20b` (PowerShell: `$env:DEEPCHORD_MODEL='gpt-oss:20b'`). `deepchord doctor`가 기본 모델과 설치 여부를 보여 줍니다. 설치되어 있지 않으면 다른 모델을 고르지 않고 설치된 이름 목록을 보여 주며 멈춥니다. DeepChord → Logic Pro → SovaFlow 파이프라인의 명령 12개는 [SovaFlow README](https://github.com/Sovereign-Music-Lab/SovaFlow/blob/main/README.ko.md#작곡-파이프라인-12)의 표 하나에 정리되어 있습니다.
+
 ## 작곡하고 계속 수정
 
 터미널에 아래 명령을 입력하면 네 마디짜리 곡을 함께 만드는 대화가 시작됩니다. `my-song`은 곡을 구분하기 위한 이름이므로 원하는 영문 이름으로 바꿔도 됩니다.
@@ -118,6 +120,40 @@ deepchord compose '반주를 더 비워줘' --bars 4 --previous-run /path/to/run
 결과마다 편집 가능한 MIDI 파일(`composition.mid`)과 곡 설명(`EXPLANATION.md`), 원본 데이터와 검사 결과가 저장됩니다. MIDI를 Logic 등에서 열어 음표를 직접 수정할 수 있습니다. 설명에는 사용한 코드와 참고용으로 검색한 이론을 구분해 적습니다.
 
 결과는 기본적으로 홈 폴더의 `.local/share/sovereign-music/`에 저장됩니다. 생성 결과가 검사에 실패하면 최대 두 번 다시 시도합니다. 그래도 실패하면 이전에 성공한 결과는 보존하고 다음 요청을 받습니다. Mac에서는 `Start.command`로도 대화를 시작할 수 있습니다.
+
+### 내 곡 형식 위에 부르는 멜로디 쓰기 (길이 제한 없음)
+
+`session`과 `compose`는 짧은 스케치를 새로 만듭니다. 곡의 형식(구간, 마디별 코드, 가사 한 줄마다의 음절)이 이미 있다면 `lead`가 로컬 모델에게 보컬 멜로디만 구간 하나씩 쓰게 합니다. 그래서 곡 길이에 제한이 없습니다.
+
+```sh
+deepchord lead request.json --out "$HOME/Music/my-song-lead" --model gemma4:12b-mlx
+# 이전 결과에 대한 의견으로 다음 버전 만들기:
+deepchord lead request.json --out "$HOME/Music/my-song-lead-2" --previous-run "$HOME/Music/my-song-lead" --note '후렴을 더 높이 올려줘'
+```
+
+`request.json` (`deepchord.lead-request/1`):
+
+```json
+{"schema": "deepchord.lead-request/1", "title": "My song", "tempo": 96, "key": "Am", "style": "slow ballad, intimate",
+ "sections": [{"name": "Verse", "centre": 67, "key_shift": 0, "phrases": [
+   {"id": "v1.a", "start_bar": 5, "chords": ["Am", "F:2,G:2"], "syllables": ["la", "la", "la", "la"]}]}]}
+```
+
+`chords`는 마디마다 문자열 하나이고, 한 마디에 코드가 둘이면 `F:2,G:2`(박 수)처럼 씁니다. `centre`는 가수 음역의 가운데 MIDI 음입니다. 구절마다 음절 하나에 음표 하나를 정확히 받습니다. DeepChord는 구절마다 16분음표 격자, 마디 범위, 음역, 1·3박의 코드톤, 조 또는 코드 구성음 여부, 9반음을 넘는 도약이 없는지 검사하고, 틀린 점을 그대로 알려 주며 모델에게 다시 요청합니다(구간당 최대 세 번). 마지막 시도 뒤에는 구절을 넘어간 리듬을 마디 안으로 비례 압축하고, 틀린 음높이는 가장 가까운 허용 음으로 옮긴 뒤 무엇을 고쳤는지와 함께 `repaired`로 표시하며, 음표 수가 맞지 않는 구절은 `failed`로 남기고 음표를 쓰지 않습니다. 코드와 음절 수가 같은 뒤쪽 구간은 앞 구간의 멜로디를 다시 씁니다.
+
+수정(`--previous-run`과 `--note`)은 의견에 이름이 나온 구간만 다시 작곡합니다. `후렴`, `2절`, `chorus`, `verse 2`, `bridge`, `pre-chorus`, 또는 `FinalChorus` 같은 정확한 구간 이름을 알아보고, 나머지 구간은 이전 결과를 그대로 복사합니다. 구간 이름이 없는 의견은 곡 전체를 수정합니다. `--sections 'Chorus,Bridge'`로 직접 고를 수도 있습니다(전체는 `--sections all`). 실행 중에 어느 구간을 다시 작곡했고 어느 구간을 유지했는지 출력하며, `lead.json`의 `revision_scope`에 기록합니다. 이전 결과 이후 마디나 음절이 바뀐 구간은 언제나 다시 작곡합니다. 수정하려던 구절에 대해 모델이 검사를 통과한 답을 내지 못하면 그 구절은 이전 멜로디를 유지하고 '미적용'으로 기록합니다. 수정이 검사를 통과한 멜로디를 빈 것으로 바꾸는 일은 없습니다.
+
+결과 폴더에는 `lead.json`(구절별 음표와 상태), `lead.mid`, `validation.json`, `rag-evidence.txt`, 모델 응답이 남습니다. 이 검사는 규칙이지 취향이 아닙니다. 멜로디를 쓰기 전에 직접 들어 보세요.
+
+### 곡 전체의 화성 검사 (모델 없음)
+
+연주곡처럼 음을 이미 쓴 곡은 `harmony`가 모델 없이, 마디 수 제한 없이 코드 구간마다 검사합니다.
+
+```sh
+deepchord harmony request.json
+```
+
+`request.json`(`deepchord.harmony-request/1`)에는 코드 구간(`bar`, 곡 시작부터 박 단위의 `start`와 `beats`, `Dm9` 같은 `label`), 코드를 연주해야 하는 트랙(`check_track`), 선택 항목 `melody_track`, 트랙별 음표(박 단위 `start`·`duration`, `pitch`)를 넣습니다. 구간마다 코드 트랙이 그 코드의 3도와 7도(7도가 없는 코드는 3도나 4도)를 연주하는지, 코드 구성음도 그 코드 계열의 일반적인 텐션도 아닌 음이 무엇인지 알려 줍니다. 음표는 가장 많이 겹치는 구간에 속하므로 16분음표 앞당겨 친 음은 그 음이 밀고 들어가는 코드에 속합니다. 코드 이름과 음의 일치만 검사하며, 음악의 좋고 나쁨은 판단하지 않습니다.
 
 ### 여러 악기의 긴 MIDI 곡 만들기 (실험 기능)
 
